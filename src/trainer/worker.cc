@@ -10,11 +10,15 @@
 #include "trainer/worker.h"
 #include "proto/model.pb.h"
 #include "proto/common.pb.h"
+#include <sstream>
+#include <string.h>
 #include "mshadow/tensor.h"
-using namespace mshadow;
+
 namespace singa {
 using std::thread;
 using mshadow::cpu;
+using namespace mshadow;
+using namespace mshadow::expr;
 
 Worker::Worker(int thread_id, int group_id, int worker_id):
   thread_id_(thread_id), group_id_(group_id), worker_id_(worker_id){
@@ -186,17 +190,22 @@ void Worker::RunOneBatch(int step, Metric* perf){
     //LOG(ERROR)<<"Test at step "<<step;
     CollectAll(test_net_, step);
     Test(modelproto_.test_steps(), kTest, test_net_);
-    string vispath = Cluster::Get()->vis_folder() + "/param-";
+  }
+  if(step%modelproto_.test_frequency()==0){
+    string prefix = Cluster::Get()->vis_folder() + "/param-";
+    string suffix = "step-"+std::to_string(step)+".dat";
     for(auto param: train_net_->params()){
       if(param->vis()){
         BlobProto bp;
+        // currently only vis filter
         CHECK_EQ(param->data().shape().size(), 2);
         param->data().ToProto(&bp);
-        string fpath = vispath+param->name() + std::to_string(step) + ".dat";
+        string fpath = prefix+param->name()+suffix ;
         WriteProtoToBinaryFile(bp, fpath.c_str());
       }
     }
   }
+
   TrainOneBatch(step, perf);
   //LOG(ERROR)<<"Train "<<step;
   if(perf!=nullptr){
@@ -264,7 +273,8 @@ void Worker::Test(int nsteps, Phase phase, shared_ptr<NeuralNet> net){
       step_id++;
     }
   }
-  string path = Cluster::Get()->vis_folder()+"/step-" + std::to_string(step_);
+  string prefix = Cluster::Get()->vis_folder()+"/layer-" ;
+  string suffix = "step-"+std::to_string(step_)+".dat";
   TSNE tsne;
   int npoints = lf.label_size();
   double* points = new double[npoints * 2];
@@ -275,7 +285,7 @@ void Worker::Test(int nsteps, Phase phase, shared_ptr<NeuralNet> net){
       lf.add_x(points[2*j]);
       lf.add_y(points[2*j+1]);
     }
-    string fpath = path + "-layer-"+ name.at(i) + ".dat";
+    string fpath = prefix+name.at(i) +suffix;
     WriteProtoToBinaryFile(lf, fpath.c_str());
     lf.clear_x();
     lf.clear_y();
@@ -410,7 +420,7 @@ void BPWorker::TestOneBatch(int step, Phase phase, shared_ptr<NeuralNet> net, Me
 CDWorker::CDWorker(int thread_id, int group_id, int worker_id):
   Worker(thread_id, group_id, worker_id) {
 }
-
+// TODO model partition (spliting layers) will be done in the future
 void CDWorker::PositivePhase(int step, shared_ptr<NeuralNet> net) {
   auto& layers = net->layers();
   for (auto& layer : layers) {
@@ -420,6 +430,7 @@ void CDWorker::PositivePhase(int step, shared_ptr<NeuralNet> net) {
 }
 
 void CDWorker::NegativePhase(int step, shared_ptr<NeuralNet> net) {
+// for negative phase, gibbs sampling only concerns RBM bottom and top layer
   auto& layers = net->layers();
   for (int i = 0; i < modelproto_.pcd_k(); i++) {
     for (auto& layer : layers) {
@@ -442,61 +453,45 @@ void CDWorker::GradientPhase(int step, shared_ptr<NeuralNet> net) {
 void CDWorker::LossPhase(int step, Phase phase,
      shared_ptr<NeuralNet> net, Metric* perf) {
   auto& layers = net->layers();
-  if (phase == kTrain) {
-  // clock_t s=clock();
-    for (auto& layer : layers) {
-      if (layer->is_toplayer())
-        layer->ComputeFeature(kTest);
-    }
-    for (auto& layer : layers) {
-      if (layer->is_bottomlayer())
-        layer->ComputeLoss(perf);
-    }
-  }
-  else if (phase == kTest) {
-      // clock_t s=clock();
+  if (phase == kTest) { // kTest
     for (auto& layer : layers) {
         if (layer->is_datalayer() || layer->is_parserlayer() || layer->is_bottomlayer())
           layer->ComputeFeature(kPositive);
     }
-    for (auto& layer : layers) {
-      if (layer->is_toplayer())
-        layer->ComputeFeature(kTest);
-    }
-    for (auto& layer : layers) {
-      if (layer->is_bottomlayer())
-        layer->ComputeLoss(perf);
-    }
   }
-  if (step % modelproto_.vis_step() == 0 && step!= 0) { /*print weight matrix*/
+  for (auto& layer : layers) {
+    if (layer->is_toplayer())
+      layer->ComputeFeature(kTest);
+  }
+  for (auto& layer : layers) {
+    if (layer->is_bottomlayer())
+      layer->ComputeLoss(perf);
+  }
+  /*
+  if (step % modelproto_.vis_step() == 0 && step!= 0) {
     BlobProto bp;
     int rownum;
     int colnum;
+    const float *dptr;
     for (auto& layer : layers) {
       if (layer->is_bottomlayer()) {
         for (shared_ptr<Param> p : layer->GetParams()) {
           rownum = p->data().shape()[0];
           colnum = p->data().shape()[1];
-          Tensor<cpu, 2> weight(p->mutable_cpu_data(), Shape2(rownum, colnum));
-          for (int i = 0; i < rownum; i++)
-            for (int j = 0; j < colnum; j++)
-              bp.add_data(static_cast<float>(weight[i][j]));
+          dptr = p->data().cpu_data();
+          for (int i = 0; i < p->data().count(); i++)
+              bp.add_data(static_cast<float>(dptr[i]));
           break;
         }
         bp.set_height(rownum);
         bp.set_width(colnum);
         auto cluster = Cluster::Get();
-        char *n_str = new char[70];
-        // const char *str = cluster->_folder();
-        std::string str = cluster->vis_folder() + "/";
-        std::string s = std::to_string(step);
-        char* buffer = (char*) s.c_str();
-        strcpy(n_str, (char*)str.c_str());
-        strcat(n_str, buffer);
-        WriteProtoToBinaryFile(bp, n_str);
+        string filename = cluster->vis_folder() + "/" + std::to_string(static_cast<int>(step / modelproto_.vis_step()));
+        WriteProtoToBinaryFile(bp, filename.c_str());
       }
     }
   }
+  */
 }
 
 void CDWorker::TrainOneBatch(int step, Metric* perf) {

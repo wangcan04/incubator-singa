@@ -203,12 +203,19 @@ class Layer {
   /**
    * @return a const ref for Blob storing neuron values of this layer for BP
    */
+  virtual const Blob<float>& data(const Layer* from, Phase phase) const {
+    return data_;
+  }
+  virtual Blob<float>* mutable_data(const Layer* from, Phase phase){
+    return &data_;
+  }
   virtual const Blob<float>& data(const Layer* from) const {
     return data_;
   }
   virtual Blob<float>* mutable_data(const Layer* from){
     return &data_;
   }
+
 
   virtual const Blob<float>& grad(const Layer* from) const {
     return grad_;
@@ -273,6 +280,12 @@ class Layer {
     return false;
   }
   virtual bool is_bridgedstlayer() const {
+    return false;
+  }
+  virtual bool is_bottomlayer() const {
+    return false;
+  }
+  virtual bool is_toplayer() const {
     return false;
   }
 protected:
