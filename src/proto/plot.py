@@ -153,4 +153,3 @@ image = Image.fromarray(tile_raster_images(
         img_shape=(28, 28), tile_shape=(10, 10),
         tile_spacing=(1, 1)))
 image.save(os.path.splitext(sys.argv[1])[0], '.jpg')
-#image.save('filters_RBM5000-1.png')
