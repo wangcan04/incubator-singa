@@ -193,15 +193,17 @@ void Worker::RunOneBatch(int step, Metric* perf){
   }
   if(step%modelproto_.test_frequency()==0){
     string prefix = Cluster::Get()->vis_folder() + "/param-";
-    string suffix = "step-"+std::to_string(step)+".dat";
-    for(auto param: train_net_->params()){
-      if(param->vis()){
-        BlobProto bp;
-        // currently only vis filter
-        CHECK_EQ(param->data().shape().size(), 2);
-        param->data().ToProto(&bp);
-        string fpath = prefix+param->name()+suffix ;
-        WriteProtoToBinaryFile(bp, fpath.c_str());
+    string suffix = "-step-"+std::to_string(step)+".dat";
+    for(auto layer: train_net_->layers()){
+      for(auto param : layer->GetParams()){
+        if(param->vis()){
+          BlobProto bp;
+          // currently only vis filter
+          CHECK_EQ(param->data().shape().size(), 2);
+          param->data().ToProto(&bp);
+          string fpath = prefix+layer->name()+"-"+param->name()+suffix ;
+          WriteProtoToBinaryFile(bp, fpath.c_str());
+        }
       }
     }
   }

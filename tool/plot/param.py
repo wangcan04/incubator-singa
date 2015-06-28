@@ -8,7 +8,8 @@ image from a set of samples or weights.
 
 
 import numpy
-import Image
+from PIL import Image
+import os
 
 def scale_to_unit_interval(ndar, eps=1e-8):
     """ Scales all values in the ndarray ndar to be between 0 and 1 """
@@ -138,18 +139,17 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
                     ] = this_img * c
         return out_array
 
-import model_pb2 as model
+from common_pb2 import BlobProto
 import sys
-bp=model.BlobProto()
+bp=BlobProto()
 fd=open(sys.argv[1], "rb")
-#fd=open("../../examples/mnistDBM/visualization/5000", "rb")
 bp.ParseFromString(fd.read())
 import numpy as np
-mat=np.array(bp.data).reshape((bp.height, bp.width))
-print bp.height, bp.width
+mat=np.array(bp.data).reshape((bp.num, bp.channels))
+print mat.shape
 
 image = Image.fromarray(tile_raster_images(
         X = mat.T,
         img_shape=(28, 28), tile_shape=(10, 10),
         tile_spacing=(1, 1)))
-image.save(os.path.splitext(sys.argv[1])[0], '.jpg')
+image.save(os.path.splitext(sys.argv[1])[0]+'.jpg')
