@@ -4,7 +4,7 @@ HOME_DIR := /usr
 # Lib folder for system and external libs. You may need to change it.
 LIBRARY_DIRS := $(HOME_DIR)/lib64 $(HOME_DIR)/lib $(HOME_DIR)/local/lib
 # Header folder for system and external libs. You may need to change it.
-INCLUDE_DIRS := $(HOME_DIR)/include ./include $(HOME_DIR)/local/include/zookeeper 
+INCLUDE_DIRS := $(HOME_DIR)/include ./include $(HOME_DIR)/local/include/zookeeper
 # g++ location, should support c++11, tested with 4.8.1
 CXX := g++
 
@@ -82,6 +82,8 @@ $(PROTO_SRCS): $(PROTOS)
 	protoc --proto_path=src/proto --cpp_out=src/proto $(PROTOS)
 	mkdir -p include/proto/
 	cp src/proto/*.pb.h include/proto/
+	mkdir -p tool/plot/
+	protoc --proto_path=src/proto --python_out=tool/plot/ $(PROTOS)
 	@echo
 
 clean:
