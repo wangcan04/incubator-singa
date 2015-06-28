@@ -1,3 +1,3 @@
 Manifest-Version: 1.0
-Main-Class: sg.edu.nus.comp.dataclean.Server
+Main-Class: org.apache.incubator.singa.web.Server
 
