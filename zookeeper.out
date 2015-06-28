@@ -1,0 +1,40 @@
+2015-06-28 03:57:47,902 [myid:] - INFO  [main:QuorumPeerConfig@103] - Reading configuration from: /home/jinyang/singademo0629/incubator-singa/thirdparty/zookeeper-3.4.6/bin/../conf/zoo.cfg
+2015-06-28 03:57:47,906 [myid:] - INFO  [main:DatadirCleanupManager@78] - autopurge.snapRetainCount set to 3
+2015-06-28 03:57:47,906 [myid:] - INFO  [main:DatadirCleanupManager@79] - autopurge.purgeInterval set to 0
+2015-06-28 03:57:47,907 [myid:] - INFO  [main:DatadirCleanupManager@101] - Purge task is not scheduled.
+2015-06-28 03:57:47,907 [myid:] - WARN  [main:QuorumPeerMain@113] - Either no config or no quorum defined in config, running  in standalone mode
+2015-06-28 03:57:47,919 [myid:] - INFO  [main:QuorumPeerConfig@103] - Reading configuration from: /home/jinyang/singademo0629/incubator-singa/thirdparty/zookeeper-3.4.6/bin/../conf/zoo.cfg
+2015-06-28 03:57:47,919 [myid:] - INFO  [main:ZooKeeperServerMain@95] - Starting server
+2015-06-28 03:57:47,925 [myid:] - INFO  [main:Environment@100] - Server environment:zookeeper.version=3.4.6-1569965, built on 02/20/2014 09:09 GMT
+2015-06-28 03:57:47,925 [myid:] - INFO  [main:Environment@100] - Server environment:host.name=ubuntu
+2015-06-28 03:57:47,926 [myid:] - INFO  [main:Environment@100] - Server environment:java.version=1.7.0_79
+2015-06-28 03:57:47,926 [myid:] - INFO  [main:Environment@100] - Server environment:java.vendor=Oracle Corporation
+2015-06-28 03:57:47,926 [myid:] - INFO  [main:Environment@100] - Server environment:java.home=/usr/lib/jvm/java-7-openjdk-amd64/jre
+2015-06-28 03:57:47,926 [myid:] - INFO  [main:Environment@100] - Server environment:java.class.path=/home/jinyang/singademo0629/incubator-singa/thirdparty/zookeeper-3.4.6/bin/../build/classes:/home/jinyang/singademo0629/incubator-singa/thirdparty/zookeeper-3.4.6/bin/../build/lib/*.jar:/home/jinyang/singademo0629/incubator-singa/thirdparty/zookeeper-3.4.6/bin/../lib/slf4j-log4j12-1.6.1.jar:/home/jinyang/singademo0629/incubator-singa/thirdparty/zookeeper-3.4.6/bin/../lib/slf4j-api-1.6.1.jar:/home/jinyang/singademo0629/incubator-singa/thirdparty/zookeeper-3.4.6/bin/../lib/netty-3.7.0.Final.jar:/home/jinyang/singademo0629/incubator-singa/thirdparty/zookeeper-3.4.6/bin/../lib/log4j-1.2.16.jar:/home/jinyang/singademo0629/incubator-singa/thirdparty/zookeeper-3.4.6/bin/../lib/jline-0.9.94.jar:/home/jinyang/singademo0629/incubator-singa/thirdparty/zookeeper-3.4.6/bin/../zookeeper-3.4.6.jar:/home/jinyang/singademo0629/incubator-singa/thirdparty/zookeeper-3.4.6/bin/../src/java/lib/*.jar:/home/jinyang/singademo0629/incubator-singa/thirdparty/zookeeper-3.4.6/bin/../conf:
+2015-06-28 03:57:47,926 [myid:] - INFO  [main:Environment@100] - Server environment:java.library.path=/home/jinyang/Desktop/idea-IU-141.1010.3/bin::/usr/java/packages/lib/amd64:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib
+2015-06-28 03:57:47,926 [myid:] - INFO  [main:Environment@100] - Server environment:java.io.tmpdir=/tmp
+2015-06-28 03:57:47,926 [myid:] - INFO  [main:Environment@100] - Server environment:java.compiler=<NA>
+2015-06-28 03:57:47,928 [myid:] - INFO  [main:Environment@100] - Server environment:os.name=Linux
+2015-06-28 03:57:47,928 [myid:] - INFO  [main:Environment@100] - Server environment:os.arch=amd64
+2015-06-28 03:57:47,928 [myid:] - INFO  [main:Environment@100] - Server environment:os.version=3.16.0-41-generic
+2015-06-28 03:57:47,928 [myid:] - INFO  [main:Environment@100] - Server environment:user.name=jinyang
+2015-06-28 03:57:47,929 [myid:] - INFO  [main:Environment@100] - Server environment:user.home=/home/jinyang
+2015-06-28 03:57:47,929 [myid:] - INFO  [main:Environment@100] - Server environment:user.dir=/home/jinyang/singademo0629/incubator-singa
+2015-06-28 03:57:47,936 [myid:] - INFO  [main:ZooKeeperServer@755] - tickTime set to 2000
+2015-06-28 03:57:47,936 [myid:] - INFO  [main:ZooKeeperServer@764] - minSessionTimeout set to -1
+2015-06-28 03:57:47,936 [myid:] - INFO  [main:ZooKeeperServer@773] - maxSessionTimeout set to -1
+2015-06-28 03:57:47,949 [myid:] - INFO  [main:NIOServerCnxnFactory@94] - binding to port 0.0.0.0/0.0.0.0:2181
+2015-06-28 03:57:47,951 [myid:] - ERROR [main:ZooKeeperServerMain@63] - Unexpected exception, exiting abnormally
+java.net.BindException: 地址已在使用
+	at sun.nio.ch.Net.bind0(Native Method)
+	at sun.nio.ch.Net.bind(Net.java:444)
+	at sun.nio.ch.Net.bind(Net.java:436)
+	at sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:214)
+	at sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:74)
+	at sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:67)
+	at org.apache.zookeeper.server.NIOServerCnxnFactory.configure(NIOServerCnxnFactory.java:95)
+	at org.apache.zookeeper.server.ZooKeeperServerMain.runFromConfig(ZooKeeperServerMain.java:111)
+	at org.apache.zookeeper.server.ZooKeeperServerMain.initializeAndRun(ZooKeeperServerMain.java:86)
+	at org.apache.zookeeper.server.ZooKeeperServerMain.main(ZooKeeperServerMain.java:52)
+	at org.apache.zookeeper.server.quorum.QuorumPeerMain.initializeAndRun(QuorumPeerMain.java:116)
+	at org.apache.zookeeper.server.quorum.QuorumPeerMain.main(QuorumPeerMain.java:78)

@@ -69,6 +69,13 @@ class Metric {
     }
     return disp;
   }
+  inline std::string ToSimpleString() const {
+    std::string disp = "";
+    for (const auto& entry : data_) {
+      disp += " "+std::to_string(entry.second / counter_);
+    }
+    return disp;
+  }
   inline void ParseString(const std::string& perf) {
     std::stringstream stream(perf);
     int n;

@@ -27,10 +27,10 @@ def plot2d(x, y, label, fname):
 
 if __name__ == "__main__":
   if len(sys.argv) !=2:
-    print 'Usage: python plot.py <path.dat>'
-    print 'the program will generate a picture at <path.jpg>'
+    print 'Usage: python plot.py <path>'
+    print 'the program use <path.dat> as input to generate a picture at <path.jpg>'
     sys.exit()
-  inputfile = sys.argv[1]
+  inputfile = sys.argv[1]+'.dat'
   print inputfile
   proto=LabelFeatureProto();
   fd=open(inputfile, 'rb')
@@ -38,5 +38,4 @@ if __name__ == "__main__":
   label=proto.label
   x=proto.x
   y=proto.y
-  paths=os.path.splitext(inputfile)
-  plot2d(x,y,label,paths[0]+'.jpg')
+  plot2d(x,y,label,sys.argv[1]+'.jpg')

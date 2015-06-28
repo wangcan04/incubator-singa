@@ -276,7 +276,7 @@ void Worker::Test(int nsteps, Phase phase, shared_ptr<NeuralNet> net){
     }
   }
   string prefix = Cluster::Get()->vis_folder()+"/layer-" ;
-  string suffix = "step-"+std::to_string(step_)+".dat";
+  string suffix = "-step-"+std::to_string(step_)+".dat";
   TSNE tsne;
   int npoints = lf.label_size();
   double* points = new double[npoints * 2];

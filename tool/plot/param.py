@@ -142,7 +142,7 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
 from common_pb2 import BlobProto
 import sys
 bp=BlobProto()
-fd=open(sys.argv[1], "rb")
+fd=open(sys.argv[1]+".dat", "rb")
 bp.ParseFromString(fd.read())
 import numpy as np
 mat=np.array(bp.data).reshape((bp.num, bp.channels))
@@ -152,4 +152,4 @@ image = Image.fromarray(tile_raster_images(
         X = mat.T,
         img_shape=(28, 28), tile_shape=(10, 10),
         tile_spacing=(1, 1)))
-image.save(os.path.splitext(sys.argv[1])[0]+'.jpg')
+image.save(sys.argv[1]+'.jpg')

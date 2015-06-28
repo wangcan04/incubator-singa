@@ -3,6 +3,7 @@
 #include <map>
 #include <queue>
 #include <chrono>
+#include <fstream>
 #include <glog/logging.h>
 #include "proto/common.pb.h"
 #include "trainer/trainer.h"
@@ -312,6 +313,7 @@ void Trainer::Run(const vector<shared_ptr<Worker>>& workers,
   Poller poll;
   poll.Add(router_.get());
   int sync_server=0, nworkers=workers.size(), nservers=servers.size();
+  std::ofstream vsofstream(Cluster::Get()->workspace() +"visualization/chart.log");
   while(!stop){
     // if the poll time is large, then the poller may not expire
     // if it is small, then many reminder messages will be sent which may
@@ -366,6 +368,13 @@ void Trainer::Run(const vector<shared_ptr<Worker>>& workers,
             Metric cur;
             cur.ParseString(string((char*)msg->frame_data(), msg->frame_size()));
             LOG(ERROR)<<prefix<<" step-" <<step<<", "<<cur.ToString();
+            if(prefix == "Train")
+            {
+                string vsoutput = cur.ToSimpleString();
+                if(!vsofstream.is_open())LOG(ERROR)<<"chart.log not open!";
+                vsofstream<<step<<vsoutput<<std::endl;
+                vsofstream.flush();
+            }
           }
           DeleteMsg(&msg);
         }else if(cluster->nserver_groups()>0){
@@ -446,6 +455,7 @@ void Trainer::Run(const vector<shared_ptr<Worker>>& workers,
       }
     }
   }
+  vsofstream.close();
   LOG(INFO)<<"Stub in process "<<procs_id_<<" stops";
 }
 Msg* Trainer::HandleConnect(Msg** msg){

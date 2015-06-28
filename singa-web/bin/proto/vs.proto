@@ -1,0 +1,13 @@
+package org.apache.incubator.singa.web.execute;
+
+message VisualConfig {
+  repeated string charts = 1;
+
+  message PicPlot {
+	required string dataname = 1;
+	required string scirptname = 2;
+	required string picname = 3;
+  }
+
+  repeated PicPlot pics = 2;
+}
