@@ -18,7 +18,7 @@ LDFLAGS := $(foreach librarydir, $(LIBRARY_DIRS), -L$(librarydir))\
 BUILD_DIR := build
 MSHADOW_FLAGS :=-DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0
 ZK_FLAGS :=-DTHREADED -fpermissive
-CXXFLAGS := -O3 -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas \
+CXXFLAGS := -O2 -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas \
 	$(MSHADOW_FLAGS) -DCPU_ONLY=1 $(ZK_FLAGS)\
 	-funroll-loops $(foreach includedir, $(INCLUDE_DIRS), -I$(includedir))
 
@@ -51,6 +51,8 @@ OBJS := $(sort $(SINGA_OBJS) $(TEST_OBJS) )
 .PHONY: singa test
 
 singa: $(PROTO_OBJS) $(SINGA_OBJS)
+	mkdir -p .libs
+	$(CXX) $(SINGA_OBJS) $(LDFLAGS) $(CXXFLAGS) -shared -o .libs/libsinga.so
 	$(CXX) $(SINGA_OBJS) src/main.cc -o singa $(CXXFLAGS) $(LDFLAGS)
 	@echo
 
@@ -90,6 +92,6 @@ clean:
 	rm -rf *.a *.so
 	rm -rf include/proto/*
 	rm -rf src/proto/*.pb.h src/proto/*.pb.cc
-	rm -rf tool/plot/*_pb2.py tool/plot/*_pb2.pyc
 	rm -rf $(BUILD_DIR)
+	rm -rf .libs
 	@echo
