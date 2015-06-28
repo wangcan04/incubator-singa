@@ -63,8 +63,9 @@ message BlobProto {
   repeated float diff = 6 [packed = true];
 }
 message LabelFeatureProto {
-  optional BlobProto label = 1;
-  optional BlobProto feature  = 2;
+  repeated int32 label = 1;
+  repeated float x = 2;
+  repeated float y = 3;
 }
 message Records {
   repeated Record records = 1;

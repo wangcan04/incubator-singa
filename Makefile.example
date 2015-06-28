@@ -90,5 +90,6 @@ clean:
 	rm -rf *.a *.so
 	rm -rf include/proto/*
 	rm -rf src/proto/*.pb.h src/proto/*.pb.cc
+	rm -rf tool/plot/*_pb2.py tool/plot/*_pb2.pyc
 	rm -rf $(BUILD_DIR)
 	@echo

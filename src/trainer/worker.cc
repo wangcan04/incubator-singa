@@ -6,11 +6,16 @@
 #include <thread>
 #include "utils/singleton.h"
 #include "utils/factory.h"
+#include "utils/vis/tsne.h"
 #include "trainer/worker.h"
 #include "proto/model.pb.h"
 #include "proto/common.pb.h"
-using std::thread;
+#include "mshadow/tensor.h"
+using namespace mshadow;
 namespace singa {
+using std::thread;
+using mshadow::cpu;
+
 Worker::Worker(int thread_id, int group_id, int worker_id):
   thread_id_(thread_id), group_id_(group_id), worker_id_(worker_id){
 }
@@ -217,49 +222,65 @@ void Worker::SendBlob(){
 
 void Worker::Test(int nsteps, Phase phase, shared_ptr<NeuralNet> net){
   Metric perf;
-  vector<Blob<float>*> features;
-  vector<string> names;
-  Blob<float>* labelblob=nullptr;
+  vector<double*> feature;
+  vector<int> dim;
+  vector<string> name;
+  LabelFeatureProto lf;
+  TensorContainer<cpu,1> idx_sample(Shape1(nsteps));
+  TSingleton<Random<cpu>>::Instance()->SampleUniform(idx_sample);
+  int nbatch=0;
+  float sample_prob = 1;
+  for(int i=0;i<nsteps;i++)
+    if(idx_sample[i]< sample_prob)
+      nbatch++;
+
   for(auto layer: net->layers()){
-    if(layer->vis()){
-      features.push_back(new Blob<float>());
-      vector<int> shape=layer->data(nullptr).shape();
-      shape[0]*=nsteps;
-      features.back()->Reshape(shape);
-      if(layer->is_labellayer())
-        labelblob = features.back();
-      names.push_back(layer->name());
+    if(layer->vis() && !layer->is_labellayer()){
+      int count = layer->data(nullptr).count();
+      feature.push_back(new double[count * nbatch]);
+      dim.push_back(count / layer->data(nullptr).shape()[0]);
+      name.push_back(layer->name());
     }
   }
-  for(int step=0;step<nsteps;step++){
+  for(int step=0, step_id=0;step<nsteps;step++){
     TestOneBatch(step, phase, net, &perf);
-    auto it=features.begin();
-    for(auto layer: net->layers()){
-      if(layer->vis()){
-        int count = layer->data(nullptr).count();
-        auto* dst= (*it)->mutable_cpu_data()+count * step;
-        auto* src=layer->data(nullptr).cpu_data();
-        memcpy(dst, src, sizeof(float) * count);
-        it++;
+    if(idx_sample[step]< sample_prob){
+      auto it=feature.begin();
+      for(auto layer: net->layers()){
+        if(layer->vis()){
+          int count = layer->data(nullptr).count();
+          const float *dat = layer->data(nullptr).cpu_data();
+          if(layer->is_labellayer())
+            for(int i=0; i < count; i++)
+              lf.add_label(static_cast<int>(dat[i]));
+          else{
+            auto* dst= (*it) + count * step_id;
+            for(int i=0;i<count;i++)
+              dst[i]=static_cast<double>(dat[i]);
+            it++;
+          }
+        }
       }
+      step_id++;
     }
   }
   string path = Cluster::Get()->vis_folder()+"/step-" + std::to_string(step_);
-  for(size_t i = 0; i < features.size(); i ++){
-    auto *blob = features.at(i);
-    if(blob != labelblob){
-      string fpath = path + "-layer-"+ names.at(i) + ".dat";
-      LabelFeatureProto lbp;
-      auto feature=lbp.mutable_feature();
-      blob->ToProto(feature);
-      auto label=lbp.mutable_label();
-      labelblob->ToProto(label);
-      WriteProtoToBinaryFile(lbp, fpath.c_str());
-      delete blob;
+  TSNE tsne;
+  int npoints = lf.label_size();
+  double* points = new double[npoints * 2];
+  for(size_t i = 0; i < feature.size(); i++){
+    tsne.run(feature.at(i),npoints, dim.at(i), points);
+    delete feature.at(i);
+    for(int j=0; j<npoints;j++){
+      lf.add_x(points[2*j]);
+      lf.add_y(points[2*j+1]);
     }
+    string fpath = path + "-layer-"+ name.at(i) + ".dat";
+    WriteProtoToBinaryFile(lf, fpath.c_str());
+    lf.clear_x();
+    lf.clear_y();
   }
-  if(labelblob != nullptr)
-    delete labelblob;
+  delete points;
   //perf.Avg();
   if(phase==kValidation)
     DisplayPerformance(perf, "Validation");

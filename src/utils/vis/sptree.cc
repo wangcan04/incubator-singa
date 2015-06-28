@@ -35,21 +35,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <cmath>
-#include "sptree.h"
+#include "utils/vis/sptree.h"
 
 
 
 // Constructs cell
 Cell::Cell(unsigned int inp_dimension) {
     dimension = inp_dimension;
-    corner = (float*) malloc(dimension * sizeof(float));
-    width  = (float*) malloc(dimension * sizeof(float));
+    corner = (double*) malloc(dimension * sizeof(double));
+    width  = (double*) malloc(dimension * sizeof(double));
 }
 
-Cell::Cell(unsigned int inp_dimension, float* inp_corner, float* inp_width) {
+Cell::Cell(unsigned int inp_dimension, double* inp_corner, double* inp_width) {
     dimension = inp_dimension;
-    corner = (float*) malloc(dimension * sizeof(float));
-    width  = (float*) malloc(dimension * sizeof(float));
+    corner = (double*) malloc(dimension * sizeof(double));
+    width  = (double*) malloc(dimension * sizeof(double));
     for(int d = 0; d < dimension; d++) setCorner(d, inp_corner[d]);
     for(int d = 0; d < dimension; d++) setWidth( d,  inp_width[d]);
 }
@@ -60,24 +60,24 @@ Cell::~Cell() {
     free(width);
 }
 
-float Cell::getCorner(unsigned int d) {
+double Cell::getCorner(unsigned int d) {
     return corner[d];
 }
 
-float Cell::getWidth(unsigned int d) {
+double Cell::getWidth(unsigned int d) {
     return width[d];
 }
 
-void Cell::setCorner(unsigned int d, float val) {
+void Cell::setCorner(unsigned int d, double val) {
     corner[d] = val;
 }
 
-void Cell::setWidth(unsigned int d, float val) {
+void Cell::setWidth(unsigned int d, double val) {
     width[d] = val;
 }
 
 // Checks whether a point lies in a cell
-bool Cell::containsPoint(float point[])
+bool Cell::containsPoint(double point[])
 {
     for(int d = 0; d < dimension; d++) {
         if(corner[d] - width[d] > point[d]) return false;
@@ -88,14 +88,14 @@ bool Cell::containsPoint(float point[])
 
 
 // Default constructor for SPTree -- build tree, too!
-SPTree::SPTree(unsigned int D, float* inp_data, unsigned int N)
+SPTree::SPTree(unsigned int D, double* inp_data, unsigned int N)
 {
 
     // Compute mean, width, and height of current map (boundaries of SPTree)
     int nD = 0;
-    float* mean_Y = (float*) calloc(D,  sizeof(float));
-    float*  min_Y = (float*) malloc(D * sizeof(float)); for(unsigned int d = 0; d < D; d++)  min_Y[d] =  DBL_MAX;
-    float*  max_Y = (float*) malloc(D * sizeof(float)); for(unsigned int d = 0; d < D; d++)  max_Y[d] = -DBL_MAX;
+    double* mean_Y = (double*) calloc(D,  sizeof(double));
+    double*  min_Y = (double*) malloc(D * sizeof(double)); for(unsigned int d = 0; d < D; d++)  min_Y[d] =  DBL_MAX;
+    double*  max_Y = (double*) malloc(D * sizeof(double)); for(unsigned int d = 0; d < D; d++)  max_Y[d] = -DBL_MAX;
     for(unsigned int n = 0; n < N; n++) {
         for(unsigned int d = 0; d < D; d++) {
             mean_Y[d] += inp_data[n * D + d];
@@ -104,10 +104,10 @@ SPTree::SPTree(unsigned int D, float* inp_data, unsigned int N)
         }
         nD += D;
     }
-    for(int d = 0; d < D; d++) mean_Y[d] /= (float) N;
+    for(int d = 0; d < D; d++) mean_Y[d] /= (double) N;
 
     // Construct SPTree
-    float* width = (float*) malloc(D * sizeof(float));
+    double* width = (double*) malloc(D * sizeof(double));
     for(int d = 0; d < D; d++) width[d] = fmax(max_Y[d] - mean_Y[d], mean_Y[d] - min_Y[d]) + 1e-5;
     init(NULL, D, inp_data, mean_Y, width);
     fill(N);
@@ -121,7 +121,7 @@ SPTree::SPTree(unsigned int D, float* inp_data, unsigned int N)
 
 
 // Constructor for SPTree with particular size and parent -- build the tree, too!
-SPTree::SPTree(unsigned int D, float* inp_data, unsigned int N, float* inp_corner, float* inp_width)
+SPTree::SPTree(unsigned int D, double* inp_data, unsigned int N, double* inp_corner, double* inp_width)
 {
     init(NULL, D, inp_data, inp_corner, inp_width);
     fill(N);
@@ -129,20 +129,20 @@ SPTree::SPTree(unsigned int D, float* inp_data, unsigned int N, float* inp_corne
 
 
 // Constructor for SPTree with particular size (do not fill the tree)
-SPTree::SPTree(unsigned int D, float* inp_data, float* inp_corner, float* inp_width)
+SPTree::SPTree(unsigned int D, double* inp_data, double* inp_corner, double* inp_width)
 {
     init(NULL, D, inp_data, inp_corner, inp_width);
 }
 
 
 // Constructor for SPTree with particular size and parent (do not fill tree)
-SPTree::SPTree(SPTree* inp_parent, unsigned int D, float* inp_data, float* inp_corner, float* inp_width) {
+SPTree::SPTree(SPTree* inp_parent, unsigned int D, double* inp_data, double* inp_corner, double* inp_width) {
     init(inp_parent, D, inp_data, inp_corner, inp_width);
 }
 
 
 // Constructor for SPTree with particular size and parent -- build the tree, too!
-SPTree::SPTree(SPTree* inp_parent, unsigned int D, float* inp_data, unsigned int N, float* inp_corner, float* inp_width)
+SPTree::SPTree(SPTree* inp_parent, unsigned int D, double* inp_data, unsigned int N, double* inp_corner, double* inp_width)
 {
     init(inp_parent, D, inp_data, inp_corner, inp_width);
     fill(N);
@@ -150,7 +150,7 @@ SPTree::SPTree(SPTree* inp_parent, unsigned int D, float* inp_data, unsigned int
 
 
 // Main initialization function
-void SPTree::init(SPTree* inp_parent, unsigned int D, float* inp_data, float* inp_corner, float* inp_width)
+void SPTree::init(SPTree* inp_parent, unsigned int D, double* inp_data, double* inp_corner, double* inp_width)
 {
     parent = inp_parent;
     dimension = D;
@@ -168,10 +168,10 @@ void SPTree::init(SPTree* inp_parent, unsigned int D, float* inp_data, float* in
     children = (SPTree**) malloc(no_children * sizeof(SPTree*));
     for(unsigned int i = 0; i < no_children; i++) children[i] = NULL;
 
-    center_of_mass = (float*) malloc(D * sizeof(float));
+    center_of_mass = (double*) malloc(D * sizeof(double));
     for(unsigned int d = 0; d < D; d++) center_of_mass[d] = .0;
 
-    buff = (float*) malloc(D * sizeof(float));
+    buff = (double*) malloc(D * sizeof(double));
 }
 
 
@@ -189,7 +189,7 @@ SPTree::~SPTree()
 
 
 // Update the data underlying this tree
-void SPTree::setData(float* inp_data)
+void SPTree::setData(double* inp_data)
 {
     data = inp_data;
 }
@@ -206,14 +206,14 @@ SPTree* SPTree::getParent()
 bool SPTree::insert(unsigned int new_index)
 {
     // Ignore objects which do not belong in this quad tree
-    float* point = data + new_index * dimension;
+    double* point = data + new_index * dimension;
     if(!boundary->containsPoint(point))
         return false;
 
     // Online update of cumulative size and center-of-mass
     cum_size++;
-    float mult1 = (float) (cum_size - 1) / (float) cum_size;
-    float mult2 = 1.0 / (float) cum_size;
+    double mult1 = (double) (cum_size - 1) / (double) cum_size;
+    double mult2 = 1.0 / (double) cum_size;
     for(unsigned int d = 0; d < dimension; d++) center_of_mass[d] *= mult1;
     for(unsigned int d = 0; d < dimension; d++) center_of_mass[d] += mult2 * point[d];
 
@@ -252,8 +252,8 @@ bool SPTree::insert(unsigned int new_index)
 void SPTree::subdivide() {
 
     // Create new children
-    float* new_corner = (float*) malloc(dimension * sizeof(float));
-    float* new_width  = (float*) malloc(dimension * sizeof(float));
+    double* new_corner = (double*) malloc(dimension * sizeof(double));
+    double* new_width  = (double*) malloc(dimension * sizeof(double));
     for(unsigned int i = 0; i < no_children; i++) {
         unsigned int div = 1;
         for(unsigned int d = 0; d < dimension; d++) {
@@ -293,7 +293,7 @@ void SPTree::fill(unsigned int N)
 bool SPTree::isCorrect()
 {
     for(unsigned int n = 0; n < size; n++) {
-        float* point = data + index[n] * dimension;
+        double* point = data + index[n] * dimension;
         if(!boundary->containsPoint(point)) return false;
     }
     if(!is_leaf) {
@@ -338,21 +338,21 @@ unsigned int SPTree::getDepth() {
 
 
 // Compute non-edge forces using Barnes-Hut algorithm
-void SPTree::computeNonEdgeForces(unsigned int point_index, float theta, float neg_f[], float* sum_Q)
+void SPTree::computeNonEdgeForces(unsigned int point_index, double theta, double neg_f[], double* sum_Q)
 {
 
     // Make sure that we spend no time on empty nodes or self-interactions
     if(cum_size == 0 || (is_leaf && size == 1 && index[0] == point_index)) return;
 
     // Compute distance between point and center-of-mass
-    float D = .0;
+    double D = .0;
     unsigned int ind = point_index * dimension;
     for(unsigned int d = 0; d < dimension; d++) buff[d] = data[ind + d] - center_of_mass[d];
     for(unsigned int d = 0; d < dimension; d++) D += buff[d] * buff[d];
 
     // Check whether we can use this node as a "summary"
-    float max_width = 0.0;
-    float cur_width;
+    double max_width = 0.0;
+    double cur_width;
     for(unsigned int d = 0; d < dimension; d++) {
         cur_width = boundary->getWidth(d);
         max_width = (max_width > cur_width) ? max_width : cur_width;
@@ -361,7 +361,7 @@ void SPTree::computeNonEdgeForces(unsigned int point_index, float theta, float n
 
         // Compute and add t-SNE force between point and current node
         D = 1.0 / (1.0 + D);
-        float mult = cum_size * D;
+        double mult = cum_size * D;
         *sum_Q += mult;
         mult *= D;
         for(unsigned int d = 0; d < dimension; d++) neg_f[d] += mult * buff[d];
@@ -375,13 +375,13 @@ void SPTree::computeNonEdgeForces(unsigned int point_index, float theta, float n
 
 
 // Computes edge forces
-void SPTree::computeEdgeForces(unsigned int* row_P, unsigned int* col_P, float* val_P, int N, float* pos_f)
+void SPTree::computeEdgeForces(unsigned int* row_P, unsigned int* col_P, double* val_P, int N, double* pos_f)
 {
 
     // Loop over all edges in the graph
     unsigned int ind1 = 0;
     unsigned int ind2 = 0;
-    float D;
+    double D;
     for(unsigned int n = 0; n < N; n++) {
         for(unsigned int i = row_P[n]; i < row_P[n + 1]; i++) {
 
@@ -411,7 +411,7 @@ void SPTree::print()
     if(is_leaf) {
         printf("Leaf node; data = [");
         for(int i = 0; i < size; i++) {
-            float* point = data + index[i] * dimension;
+            double* point = data + index[i] * dimension;
             for(int d = 0; d < dimension; d++) printf("%f, ", point[d]);
             printf(" (index = %d)", index[i]);
             if(i < size - 1) printf("\n");
