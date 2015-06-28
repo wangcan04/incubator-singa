@@ -216,6 +216,10 @@ class Layer {
     return &grad_;
   }
 
+  bool vis() const {
+    return layer_proto_.vis();
+  }
+
   /**
    * return LayerS that connected to this layer
    */
@@ -253,6 +257,9 @@ class Layer {
     return false;
   }
   virtual bool is_parserlayer() const {
+    return false;
+  }
+  virtual bool is_labellayer() const {
     return false;
   }
   virtual bool is_losslayer() const {

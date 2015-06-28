@@ -62,6 +62,13 @@ message BlobProto {
   repeated float data = 5 [packed = true];
   repeated float diff = 6 [packed = true];
 }
+message LabelFeatureProto {
+  optional BlobProto label = 1;
+  optional BlobProto feature  = 2;
+}
+message Records {
+  repeated Record records = 1;
+}
 
 message Record {
   enum Type {

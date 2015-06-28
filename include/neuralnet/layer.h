@@ -128,6 +128,9 @@ class LabelLayer: public ParserLayer {
  public:
   using ParserLayer::Setup;
 
+  virtual bool is_labellayer() const {
+    return true;
+  }
   virtual void Setup(const LayerProto& proto, const vector<SLayer>& srclayers);
   virtual void ParseRecords(Phase phase, const vector<Record>& records,
       Blob<float>* blob);

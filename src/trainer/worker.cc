@@ -8,6 +8,7 @@
 #include "utils/factory.h"
 #include "trainer/worker.h"
 #include "proto/model.pb.h"
+#include "proto/common.pb.h"
 using std::thread;
 namespace singa {
 Worker::Worker(int thread_id, int group_id, int worker_id):
@@ -180,6 +181,16 @@ void Worker::RunOneBatch(int step, Metric* perf){
     //LOG(ERROR)<<"Test at step "<<step;
     CollectAll(test_net_, step);
     Test(modelproto_.test_steps(), kTest, test_net_);
+    string vispath = Cluster::Get()->vis_folder() + "/param-";
+    for(auto param: train_net_->params()){
+      if(param->vis()){
+        BlobProto bp;
+        CHECK_EQ(param->data().shape().size(), 2);
+        param->data().ToProto(&bp);
+        string fpath = vispath+param->name() + std::to_string(step) + ".dat";
+        WriteProtoToBinaryFile(bp, fpath.c_str());
+      }
+    }
   }
   TrainOneBatch(step, perf);
   //LOG(ERROR)<<"Train "<<step;
@@ -206,10 +217,49 @@ void Worker::SendBlob(){
 
 void Worker::Test(int nsteps, Phase phase, shared_ptr<NeuralNet> net){
   Metric perf;
+  vector<Blob<float>*> features;
+  vector<string> names;
+  Blob<float>* labelblob=nullptr;
+  for(auto layer: net->layers()){
+    if(layer->vis()){
+      features.push_back(new Blob<float>());
+      vector<int> shape=layer->data(nullptr).shape();
+      shape[0]*=nsteps;
+      features.back()->Reshape(shape);
+      if(layer->is_labellayer())
+        labelblob = features.back();
+      names.push_back(layer->name());
+    }
+  }
   for(int step=0;step<nsteps;step++){
     TestOneBatch(step, phase, net, &perf);
-    perf.Inc();
+    auto it=features.begin();
+    for(auto layer: net->layers()){
+      if(layer->vis()){
+        int count = layer->data(nullptr).count();
+        auto* dst= (*it)->mutable_cpu_data()+count * step;
+        auto* src=layer->data(nullptr).cpu_data();
+        memcpy(dst, src, sizeof(float) * count);
+        it++;
+      }
+    }
   }
+  string path = Cluster::Get()->vis_folder()+"/step-" + std::to_string(step_);
+  for(size_t i = 0; i < features.size(); i ++){
+    auto *blob = features.at(i);
+    if(blob != labelblob){
+      string fpath = path + "-layer-"+ names.at(i) + ".dat";
+      LabelFeatureProto lbp;
+      auto feature=lbp.mutable_feature();
+      blob->ToProto(feature);
+      auto label=lbp.mutable_label();
+      labelblob->ToProto(label);
+      WriteProtoToBinaryFile(lbp, fpath.c_str());
+      delete blob;
+    }
+  }
+  if(labelblob != nullptr)
+    delete labelblob;
   //perf.Avg();
   if(phase==kValidation)
     DisplayPerformance(perf, "Validation");
@@ -321,17 +371,18 @@ void BPWorker::TestOneBatch(int step, Phase phase, shared_ptr<NeuralNet> net, Me
   Forward(step, phase, net);
   const auto& losslayers=net->losslayers();
   for(auto layer: losslayers){
-      if(layer->partitionid()==worker_id_){
-        const float * ptr=layer->metric().cpu_data();
-        /*
-        for(int j=0;j<layer->metric().count();j++)
-          perf.AddMetric(std::to_string(j)+"#"+layer->name(), ptr[j]);
-        */
-        // hard code display info
-        perf->AddMetric(std::to_string(0)+"#loss", ptr[0]);
-        perf->AddMetric(std::to_string(1)+"#accuracy", ptr[1]);
-      }
+    if(layer->partitionid()==worker_id_){
+      const float * ptr=layer->metric().cpu_data();
+      /*
+         for(int j=0;j<layer->metric().count();j++)
+         perf.AddMetric(std::to_string(j)+"#"+layer->name(), ptr[j]);
+         */
+      // hard code display info
+      perf->AddMetric(std::to_string(0)+"#loss", ptr[0]);
+      perf->AddMetric(std::to_string(1)+"#accuracy", ptr[1]);
     }
+  }
+  perf->Inc();
 }
 
 }  // namespace singa

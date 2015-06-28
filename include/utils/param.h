@@ -131,6 +131,9 @@ class Param {
   const std::string& name() {
     return proto_.name();
   }
+  bool vis() const {
+    return proto_.vis();
+  }
   /**
    * if the Param shares data with others, then owner is the id of that param.
    * otherwise it is itself's id.
