@@ -25,7 +25,7 @@
 
 usage="Usage: \n \
   (single node): singa-run.sh -cluster=YOUR_CONF_FILE -model=YOUR_CONF_FILE \n \
-  (distributed): singa-run.sh -conf=YOUR_CONF_DIR \ 
+  (distributed): singa-run.sh -conf=YOUR_CONF_DIR \
   (the directory should contain cluster.conf/model.conf/hostfile)"
 
 #if [ $# -le 0 ] || [ $# -ge 3 ] ; then
@@ -51,7 +51,7 @@ fi
 
 if [ $valid_args = false ] ; then
   echo -e $usage
-  exit 1 
+  exit 1
 fi
 
 # get singa-base
@@ -63,7 +63,7 @@ cd $BASE
 
 # clenup singa data
 if [ -z $host_path ] ; then
-  $BIN/singa-stop.sh 
+  $BIN/singa-stop.sh
 else
   $BIN/singa-stop.sh $host_path
 fi
@@ -82,6 +82,7 @@ if [ $# = 2 ] ; then
   echo executing : $cmd
   $cmd
 elif [ $# = 1 ] ; then
+  python tool/genhostfile.py $conf_path/cluster.conf
   # ssh and start singa processes
   ssh_options="-oStrictHostKeyChecking=no \
   -oUserKnownHostsFile=/dev/null \

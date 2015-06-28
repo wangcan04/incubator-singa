@@ -102,7 +102,7 @@ class Worker {
    * @param step the ::Train() has been called this num times.
    */
   const bool TestNow(const int step) const{
-    return (group_id_==0
+    return (group_id_==0 && worker_id_ == 0
         && modelproto_.test_frequency() > 0
         && modelproto_.test_steps() > 0
         && step >= modelproto_.test_after_steps()
@@ -136,6 +136,7 @@ class Worker {
   shared_ptr<NeuralNet> train_net_, test_net_, validation_net_;
   shared_ptr<Dealer> layer_dealer_, dealer_;
   shared_ptr<Updater> updater_;
+  std::thread tsne_thread_;
 };
 
 class BPWorker: public Worker{

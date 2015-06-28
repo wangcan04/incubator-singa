@@ -33,6 +33,6 @@
       </library>
     </orderEntry>
     <orderEntry type="inheritedJdk" />
-    <orderEntry type="library" exported="" name="protobuf-java-2.6.0" level="project" />
+    <orderEntry type="library" name="protobuf-java-2.6.0" level="project" />
   </component>
 </module>
