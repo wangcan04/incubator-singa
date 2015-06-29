@@ -19,7 +19,9 @@ const int kCollectSleepTime=5;//milliseconds;
 class Worker {
  public:
   Worker(int thread_id, int group_id, int worker_id);
-  ~Worker(){}
+  ~Worker() {
+    if (tsne_thread_.joinable()) tsne_thread_.join();
+  }
   void Setup(const ModelProto& model, shared_ptr<NeuralNet> train_net);
   void set_test_net(shared_ptr<NeuralNet> test_net){
     test_net_=test_net;
@@ -136,7 +138,10 @@ class Worker {
   shared_ptr<NeuralNet> train_net_, test_net_, validation_net_;
   shared_ptr<Dealer> layer_dealer_, dealer_;
   shared_ptr<Updater> updater_;
+
   std::thread tsne_thread_;
+  static void TsneRun(LabelFeatureProto* lf, vector<double*>* feature,
+               vector<int>* dim, vector<string>* name, int step);
 };
 
 class BPWorker: public Worker{

@@ -233,10 +233,14 @@ void Worker::SendBlob(){
 
 void Worker::Test(int nsteps, Phase phase, shared_ptr<NeuralNet> net){
   Metric perf;
-  vector<double*> feature;
-  vector<int> dim;
-  vector<string> name;
-  LabelFeatureProto lf;
+  //vector<double*> feature;
+  vector<double*>* feature = new vector<double*>();
+  //vector<int> dim;
+  vector<int>* dim = new vector<int>();
+  //vector<string> name;
+  vector<string>* name = new vector<string>();
+  //LabelFeatureProto lf;
+  LabelFeatureProto* lf = new LabelFeatureProto();
   TensorContainer<cpu,1> idx_sample(Shape1(nsteps));
   TSingleton<Random<cpu>>::Instance()->SampleUniform(idx_sample);
   int nbatch=0;
@@ -248,22 +252,22 @@ void Worker::Test(int nsteps, Phase phase, shared_ptr<NeuralNet> net){
   for(auto layer: net->layers()){
     if(layer->vis() && !layer->is_labellayer()){
       int count = layer->data(nullptr).count();
-      feature.push_back(new double[count * nbatch]);
-      dim.push_back(count / layer->data(nullptr).shape()[0]);
-      name.push_back(layer->name());
+      feature->push_back(new double[count * nbatch]);
+      dim->push_back(count / layer->data(nullptr).shape()[0]);
+      name->push_back(layer->name());
     }
   }
   for(int step=0, step_id=0;step<nsteps;step++){
     TestOneBatch(step, phase, net, &perf);
     if(idx_sample[step]< sample_prob){
-      auto it=feature.begin();
+      auto it=feature->begin();
       for(auto layer: net->layers()){
         if(layer->vis()){
           int count = layer->data(nullptr).count();
           const float *dat = layer->data(nullptr).cpu_data();
           if(layer->is_labellayer())
             for(int i=0; i < count; i++)
-              lf.add_label(static_cast<int>(dat[i]));
+              lf->add_label(static_cast<int>(dat[i]));
           else{
             auto* dst= (*it) + count * step_id;
             for(int i=0;i<count;i++)
@@ -275,6 +279,9 @@ void Worker::Test(int nsteps, Phase phase, shared_ptr<NeuralNet> net){
       step_id++;
     }
   }
+  if (tsne_thread_.joinable()) tsne_thread_.join();
+  tsne_thread_ = std::thread(TsneRun, lf, feature, dim, name, step_);
+/*
   string prefix = Cluster::Get()->vis_folder()+"/layer-" ;
   string suffix = "-step-"+std::to_string(step_)+".dat";
   TSNE tsne;
@@ -293,11 +300,39 @@ void Worker::Test(int nsteps, Phase phase, shared_ptr<NeuralNet> net){
     lf.clear_y();
   }
   delete points;
+*/
   //perf.Avg();
   if(phase==kValidation)
     DisplayPerformance(perf, "Validation");
   else if (phase==kTest)
     DisplayPerformance(perf, "Test");
+}
+
+void Worker::TsneRun(LabelFeatureProto* lf, vector<double*>* feature,
+                     vector<int>* dim, vector<string>* name, int step){
+  string prefix = Cluster::Get()->vis_folder()+"/layer-" ;
+  string suffix = "-step-"+std::to_string(step)+".dat";
+  TSNE tsne;
+  int npoints = lf->label_size();
+  double* points = new double[npoints * 2];
+  for(size_t i = 0; i < feature->size(); i++){
+    tsne.run(feature->at(i),npoints, dim->at(i), points);
+    delete feature->at(i);
+    for(int j=0; j<npoints;j++){
+      lf->add_x(points[2*j]);
+      lf->add_y(points[2*j+1]);
+    }
+    string fpath = prefix+name->at(i) +suffix;
+    WriteProtoToBinaryFile(*lf, fpath.c_str());
+    lf->clear_x();
+    lf->clear_y();
+  }
+  delete points;
+
+  delete lf;
+  delete feature;
+  delete dim;
+  delete name;
 }
 
 /****************************BPWorker**********************************/
