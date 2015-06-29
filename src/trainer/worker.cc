@@ -168,6 +168,7 @@ int Worker::Collect(shared_ptr<Param> param, int step){
   return 1;
 }
 const void Worker::DisplayPerformance(const Metric & perf, const string& prefix){
+  if(worker_id_==0){
   Msg* msg=new Msg();
   msg->set_src(group_id_, worker_id_, kWorkerParam);
   msg->set_dst(-1,-1, kStub);
@@ -177,6 +178,7 @@ const void Worker::DisplayPerformance(const Metric & perf, const string& prefix)
   msg->add_frame(prefix.c_str(), prefix.length());
   msg->add_frame(disp.c_str(), disp.length());
   dealer_->Send(&msg);
+  }
   //LOG(ERROR)<<prefix<<" "<<perf.ToString();
 }
 
@@ -249,6 +251,7 @@ void Worker::Test(int nsteps, Phase phase, shared_ptr<NeuralNet> net){
     if(idx_sample[i]< sample_prob)
       nbatch++;
 
+  if(worker_id_==0){
   for(auto layer: net->layers()){
     if(layer->vis() && !layer->is_labellayer()){
       int count = layer->data(nullptr).count();
@@ -257,13 +260,15 @@ void Worker::Test(int nsteps, Phase phase, shared_ptr<NeuralNet> net){
       name->push_back(layer->name());
     }
   }
+  }
   for(int step=0, step_id=0;step<nsteps;step++){
     TestOneBatch(step, phase, net, &perf);
+  if(worker_id_==0){
     if(idx_sample[step]< sample_prob){
       auto it=feature->begin();
       for(auto layer: net->layers()){
         if(layer->vis()){
-          int count = layer->data(nullptr).count();
+          int count = layer->data(nullptr).count()/Cluster::Get()->nworkers_per_group();
           const float *dat = layer->data(nullptr).cpu_data();
           if(layer->is_labellayer())
             for(int i=0; i < count; i++)
@@ -279,8 +284,11 @@ void Worker::Test(int nsteps, Phase phase, shared_ptr<NeuralNet> net){
       step_id++;
     }
   }
+  }
+  if(worker_id_==0){
   if (tsne_thread_.joinable()) tsne_thread_.join();
   tsne_thread_ = std::thread(TsneRun, lf, feature, dim, name, step_);
+  }
 /*
   string prefix = Cluster::Get()->vis_folder()+"/layer-" ;
   string suffix = "-step-"+std::to_string(step_)+".dat";

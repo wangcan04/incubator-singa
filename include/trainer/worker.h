@@ -104,7 +104,7 @@ class Worker {
    * @param step the ::Train() has been called this num times.
    */
   const bool TestNow(const int step) const{
-    return (group_id_==0 && worker_id_ == 0
+    return (group_id_==0// && worker_id_ == 0
         && modelproto_.test_frequency() > 0
         && modelproto_.test_steps() > 0
         && step >= modelproto_.test_after_steps()
