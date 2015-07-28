@@ -20,7 +20,7 @@ message ClusterProto {
   optional int32 bandwidth=61 [default=134217728];
   // poll time in milliseconds
   optional int32 poll_time=62 [default =100];
-  // workspace for checkpoint/vis folder. Overwrite cmd 'workspace' if set
+  // workspace for checkpoint/vis folder. Overwrite cmd "workspace" if set
   optional string workspace = 63 [default = "workspace"];
 
   // port number is used by ZeroMQ
