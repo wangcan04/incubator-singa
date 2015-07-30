@@ -89,9 +89,11 @@ void Trainer::SetupWorkerServer(
   shared_ptr<NeuralNet> train_net, test_net, valid_net;
   int grp = workers.size() ? workers.at(0)->grp_id() : -1;
   if (grp == 0 && model_conf.test_steps()) {
-    // test are performed only by the first group
-    test_net = NeuralNet::Create(net_conf, kTest, grp_size);
-    test_net->ShareParamsFrom(net);
+    if (workers.size() > 0 && workers.at(0)->id() == 0) {
+      // test are performed only by the first group
+      test_net = NeuralNet::Create(net_conf, kTest, 1); // hard code for exp   kTest, grp_size);
+      test_net->ShareParamsFrom(net);
+    }
   }
   if (grp == 0 && model_conf.validation_steps()) {
     // validation are performed only by the first group

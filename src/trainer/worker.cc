@@ -152,7 +152,7 @@ void Worker::Run() {
       CollectAll(validation_net_, step_);
       Test(modelproto_.validation_steps(), kValidation, validation_net_);
     }
-    if (TestNow(step_)) {
+    if (TestNow(step_) && test_net_ != nullptr) {
       //LOG(ERROR)<<"Test at step "<<step;
       CollectAll(test_net_, step_);
       Test(modelproto_.test_steps(), kTest, test_net_);
