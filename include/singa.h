@@ -21,6 +21,7 @@ namespace singa {
 void SubmitJob(int job, bool resume, const JobProto& jobConf) {
   SingaProto singaConf;
   ReadProtoFromTextFile(FLAGS_singa_conf.c_str(), &singaConf);
+  LOG(ERROR) << jobConf.cluster().DebugString();
   if (singaConf.has_log_dir())
     SetupLog(singaConf.log_dir(),
         std::to_string(job) + "-" + jobConf.model().name());

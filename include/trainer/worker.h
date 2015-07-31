@@ -177,6 +177,7 @@ class Worker {
   shared_ptr<NeuralNet> train_net_, test_net_, validation_net_;
   Dealer* layer_dealer_, *dealer_;
   Updater* updater_;
+  std::vector<float> elapsed_time_;
 };
 
 class BPWorker: public Worker{

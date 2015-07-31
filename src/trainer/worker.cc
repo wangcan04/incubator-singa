@@ -9,6 +9,9 @@
 
 namespace singa {
 using std::thread;
+using ms = std::chrono::microseconds;
+using get_time = std::chrono::steady_clock;
+const float kClicks = 1000.f;
 
 Worker::Worker(int thread_id, int grp_id, int id):
   thread_id_(thread_id), grp_id_(grp_id), id_(id),
@@ -146,6 +149,11 @@ void Worker::Run() {
   step_ = modelproto_.step();
   InitLocalParams();
   Metric perf;
+  for (auto layer: train_net_->layers()) {
+    elapsed_time_.push_back(0.f);
+    elapsed_time_.push_back(0.f);
+  }
+  auto start = get_time::now();
   while (!StopNow(step_)) {
     if (ValidateNow(step_)) {
       //LOG(ERROR)<<"Validation at step "<<step;
@@ -170,6 +178,17 @@ void Worker::Run() {
       perf.Reset();
     }
     step_++;
+  }
+  auto diff = get_time::now() - start;
+  LOG(ERROR) << "time per iteration "
+    << std::chrono::duration_cast<ms>(diff).count() / (kClicks * step_) << " ms";
+  auto fit = elapsed_time_.begin();
+  auto bit = fit + train_net_->layers().size();
+  for (auto layer : train_net_->layers()) {
+    LOG(ERROR) << layer->name() << " forward: " << (*fit) / (kClicks * step_) << " ms";
+    LOG(ERROR) << layer->name() << " backward: " << (*bit) / (kClicks * step_) << " ms";
+    fit ++;
+    bit ++;
   }
 
   // save the model
@@ -330,6 +349,7 @@ BPWorker::BPWorker(int thread_id, int group_id, int worker_id):
 
 void BPWorker::Forward(
     int step, Phase phase, shared_ptr<NeuralNet> net, Metric* perf) {
+  auto it_time = elapsed_time_.begin();
   for (auto& layer : net->layers()) {
     if (layer->partition_id() == id_) {
       if (layer->is_bridgedstlayer())  // recv data from other workers
@@ -339,7 +359,11 @@ void BPWorker::Forward(
           Collect(p, step);
         }
       }
+      auto start = get_time::now();
       layer->ComputeFeature(phase, perf);
+      auto diff = get_time::now() - start;
+      *it_time += std::chrono::duration_cast<ms>(diff).count();
+      it_time ++;
       if (layer->is_bridgesrclayer())  // send data to other workers
         SendBlobs(true, false, static_cast<BridgeLayer*>(layer), net);
       if (DisplayDebugInfo(step))
@@ -350,13 +374,18 @@ void BPWorker::Forward(
 
 void BPWorker::Backward(int step, shared_ptr<NeuralNet> net) {
   auto& layers=net->layers();
+  auto it_time = elapsed_time_.rbegin();
   for (auto it = layers.rbegin(); it != layers.rend(); it++){
     Layer* layer = *it;
     if (layer->partition_id() == id_) {
       if(layer->is_bridgesrclayer()) {
         // ReceiveBlobs(false, true, layer, net);
       }
+      auto start = get_time::now();
       layer->ComputeGradient(kTrain);
+      auto diff = get_time::now() - start;
+      *it_time += std::chrono::duration_cast<ms>(diff).count();
+      it_time ++;
       if (DisplayDebugInfo(step))
         LOG(INFO) << layer->DebugString(step, kBackward);
       for (Param* p : layer->GetParams())
