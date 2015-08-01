@@ -241,7 +241,7 @@ Msg* Server::HandleSyncRequest(Msg **msg) {
       response=new Msg(msgg->dst(), msgg->src());
       response->set_type(kSyncRequest);
       response->set_trgt(param->id(), param->version());
-      response->AddFrame(diff.dptr, param->size()*sizeof(float));
+      response->AddFrame(diff.dptr_, param->size()*sizeof(float));
       prev=diff+tmp;
       Copy(cur, prev);
     } else {  // no bandwidth, aggregate my updates for next sync

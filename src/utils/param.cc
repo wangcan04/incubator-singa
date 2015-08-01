@@ -47,7 +47,7 @@ void Param::InitValues(int version){
     data=proto_.value();
     break;
   case ParamProto::kUniform:
-    random->SampleUniform(data, proto_.low(), proto_.high());
+    random->SampleUniform(&data, proto_.low(), proto_.high());
     if(proto_.value())
       data*= proto_.value();
     break;
@@ -60,17 +60,17 @@ void Param::InitValues(int version){
     break;
     */
   case ParamProto::kUniformSqrtFanInOut:
-    random->SampleUniform(data, proto_.low(), proto_.high());
+    random->SampleUniform(&data, proto_.low(), proto_.high());
     if(proto_.value())
       data*= proto_.value()/ sqrt(data_->shape()[0] +data_->shape()[1]);
     break;
   case ParamProto::kGaussian:
-    random->SampleGaussian(data, proto_.mean(), proto_.std());
+    random->SampleGaussian(&data, proto_.mean(), proto_.std());
     if(proto_.value())
       data*= proto_.value();
     break;
   case ParamProto::kGaussainSqrtFanIn:
-    random->SampleGaussian(data, proto_.mean(), proto_.std());
+    random->SampleGaussian(&data, proto_.mean(), proto_.std());
     if(proto_.value())
       data*= proto_.value()/ sqrt(data_->shape()[0]);
     break;

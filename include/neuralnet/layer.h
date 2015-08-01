@@ -51,6 +51,12 @@ class ConvolutionLayer: public Layer {
   Blob<float> col_data_, col_grad_;
 };
 
+class CaffeConvLayer: public ConvolutionLayer {
+ public:
+  void ComputeFeature(Phase phase, Metric *perf) override;
+  void ComputeGradient(Phase phase) override;
+};
+
 class DropoutLayer: public Layer {
  public:
   using Layer::ComputeFeature;
@@ -271,6 +277,16 @@ class PoolingLayer: public Layer {
   int kernel_, pad_, stride_;
   int batchsize_, channels_, height_, width_, pooled_height_, pooled_width_;
   PoolingProto_PoolMethod pool_;
+};
+
+class CaffePoolingLayer: public PoolingLayer {
+ public:
+  void Setup(const LayerProto& proto, int npartitions) override;
+  void ComputeFeature(Phase phase, Metric *perf) override;
+  void ComputeGradient(Phase phase) override;
+
+ protected:
+  Blob<float> mask_;
 };
 
 class ReLULayer: public Layer {

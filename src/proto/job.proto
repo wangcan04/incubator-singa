@@ -171,6 +171,8 @@ message LayerProto {
   enum LayerType{
     kBridgeSrc = 15;
     kBridgeDst = 16;
+    kCaffeConv = 25;
+    kCaffePooling = 26;
     kConvolution = 1;
     kConcate = 2;
     kShardData = 3;

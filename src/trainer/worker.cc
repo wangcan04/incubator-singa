@@ -184,12 +184,14 @@ void Worker::Run() {
     << std::chrono::duration_cast<ms>(diff).count() / (kClicks * step_) << " ms";
   auto fit = elapsed_time_.begin();
   auto bit = fit + train_net_->layers().size();
+  /*
   for (auto layer : train_net_->layers()) {
     LOG(ERROR) << layer->name() << " forward: " << (*fit) / (kClicks * step_) << " ms";
     LOG(ERROR) << layer->name() << " backward: " << (*bit) / (kClicks * step_) << " ms";
     fit ++;
     bit ++;
   }
+  */
 
   // save the model
   Checkpoint(step_, train_net_);

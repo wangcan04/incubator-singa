@@ -149,7 +149,7 @@ PrefetchLayer::~PrefetchLayer(){
     delete layer;
 }
 /************* Implementation for SliceLayer****************/
-void SliceLayer::Setup(const LayerProto& proto, int npartitions){
+void SliceLayer::Setup(const LayerProto& proto, int npartitions) {
   // CHECK_EQ(npartitions, 1);
   Layer::Setup(proto, npartitions);
   slice_dim_=proto.slice_conf().slice_dim();
@@ -162,7 +162,7 @@ void SliceLayer::Setup(const LayerProto& proto, int npartitions){
   gradvec_.resize(slice_num_);
   CHECK_EQ(data_.count()%slice_num_, 0); // restrict equal slicing
   //LOG(ERROR)<<"slice dim "<<slice_dim<<" slice num "<<slice_num;
-  for(int i=0;i<slice_num_;i++){
+  for(int i=0;i<slice_num_;i++) {
     vector<int> newshape(data_.shape());
     newshape[slice_dim_]=newshape[slice_dim_]/slice_num_+
       ((i==slice_num_-1)?newshape[slice_dim_]%slice_num_:0);

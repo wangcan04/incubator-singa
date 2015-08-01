@@ -17,6 +17,8 @@ void NeuralNet::RegisterLayers() {
   // FooLayer's type is kFoo, register using Foo
   RegisterLayer(factory, BridgeDst);
   RegisterLayer(factory, BridgeSrc);
+  RegisterLayer(factory, CaffeConv);
+  RegisterLayer(factory, CaffePooling);
   RegisterLayer(factory, Convolution);
   RegisterLayer(factory, Concate);
   RegisterLayer(factory, Dropout);
