@@ -48,7 +48,7 @@ void Worker::InitLocalParams() {
     // extract params that should be initialized by this worker
     // Must gen a name for each param if the user doesn't config it
     std::unordered_map<string, Param*> name2param;
-    for (auto layer: train_net_->layers()){
+    for (auto layer: train_net_->layers()) {
       if (layer->partition_id() == id_) {
         for (auto param : layer->GetParams()) {
           // only owners fill the memory of parameter values.
@@ -61,31 +61,36 @@ void Worker::InitLocalParams() {
     }
     // load from checkpoint. Get param blob based on param name
     for (const auto checkpoint : modelproto_.checkpoint()) {
-      LOG(INFO) << "Load from checkpoint file " << checkpoint;
+      LOG(ERROR) << "Load from checkpoint file " << checkpoint;
       BlobProtos bps;
       ReadProtoFromBinaryFile(checkpoint.c_str(), &bps);
       for (int i = 0; i < bps.name_size(); i++) {
         if (name2param.find(bps.name(i)) != name2param.end()) {
           name2param.at(bps.name(i))->FromProto(bps.blob(i));
-          name2param.at(bps.name(i))->set_version(bps.version(i));
+          if(modelproto_.reset_param_version())
+            name2param.at(bps.name(i))->set_version(modelproto_.step());
+          else
+            name2param.at(bps.name(i))->set_version(bps.version(i));
         }
       }
     }
     // init other params who do not have checkpoint version
     for (auto entry : name2param)
-      if (entry.second->version() < 0 || modelproto_.reset_param_version())
+      if (entry.second->version() < 0) {
+        LOG(ERROR) << "init " << entry.first;
         entry.second->InitValues(modelproto_.step());
+      }
 
-    Metric perf;
-    // warmup training before put params to servers
-    for (; step_ < modelproto_.warmup_steps(); step_++)
-      TrainOneBatch(step_, &perf);
     for (auto layer : train_net_->layers()) {
       if (layer->partition_id() == id_)
         for (auto param : layer->GetParams())
           if (param->owner() == param->id())
-            Put(param, step_);
+            Put(param, param->version());
     }
+    Metric perf;
+    // warmup training before put params to servers
+    for (; step_ < modelproto_.warmup_steps(); step_++)
+      TrainOneBatch(step_, &perf);
   }
   // wait owners in the same procs init params, then no get requests sent
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -154,6 +159,7 @@ void Worker::Run() {
   }
   Metric perf;
   auto start = get_time::now();
+  auto diff = get_time::now() - start;
   while (!StopNow(step_)) {
     if (ValidateNow(step_)) {
       //LOG(ERROR)<<"Validation at step "<<step;
@@ -171,7 +177,11 @@ void Worker::Run() {
       Checkpoint(step_, train_net_);
       modelproto_.set_step(step_);
     }
+    if (step_ == 30)
+      start = get_time::now();
     TrainOneBatch(step_, &perf);
+    if (step_ == 80)
+      diff = get_time::now() - start;
     // LOG(ERROR) << "Train " << step_;
     if (DisplayNow(step_)) {
       Report("Train", perf);
@@ -179,14 +189,13 @@ void Worker::Run() {
     }
     step_++;
   }
-  auto diff = get_time::now() - start;
   LOG(ERROR) << "time per iteration "
-    << std::chrono::duration_cast<ms>(diff).count() / (kClicks * step_) << " ms";
+    << std::chrono::duration_cast<ms>(diff).count() / (kClicks * 50) << " ms";
   auto fit = elapsed_time_.begin();
   auto bit = fit + train_net_->layers().size();
   for (auto layer : train_net_->layers()) {
-    LOG(INFO) << layer->name() << " forward: " << (*fit) / (kClicks * step_) << " ms";
-    LOG(INFO) << layer->name() << " backward: " << (*bit) / (kClicks * step_) << " ms";
+    LOG(INFO) << layer->name() << " forward: " << (*fit) / (kClicks * 50) << " ms";
+    LOG(INFO) << layer->name() << " backward: " << (*bit) / (kClicks * 50) << " ms";
     fit ++;
     bit ++;
   }

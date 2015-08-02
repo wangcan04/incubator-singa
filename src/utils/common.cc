@@ -175,7 +175,8 @@ void Metric::Add(const string& name, float value) {
 }
 
 void Metric::Reset() {
-  for(auto e : entry_) {
+  // must use reference!! otherwise the reset is invalid
+  for(auto &e : entry_) {
     e.second.first = 0;
     e.second.second = 0;
   }

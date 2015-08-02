@@ -6,8 +6,8 @@ message JobProto {
 }
 
 message ClusterProto {
-  optional int32 nworker_groups = 1;
-  optional int32 nserver_groups = 2;
+  optional int32 nworker_groups = 1 [default = 1];
+  optional int32 nserver_groups = 2 [default = 1];
   optional int32 nworkers_per_group = 3 [default = 1];
   optional int32 nservers_per_group = 4 [default = 1];
   optional int32 nworkers_per_procs = 5 [default = 1];
@@ -95,7 +95,7 @@ message ModelProto {
   // checkpoint files
   repeated string checkpoint = 66;
   // reset the version of params loaded from checkpoint file to step
-  optional bool reset_param_version = 67 [default = false];
+  optional bool reset_param_version = 67 [default = true];
   //number of steps for gibbs sampling
   optional int32 pcd_k=69 [default=15];
 }
