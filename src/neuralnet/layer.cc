@@ -158,7 +158,7 @@ void CaffeConvLayer::ComputeGradient(Phase phase) {
   auto gcol = Tensor2(&col_grad_);
   auto gweight = Tensor2(weight_->mutable_grad());
   auto gbias = Tensor1(bias_->mutable_grad());
-
+  gweight = 0.f;
   Blob<float>* gsrcblob=srclayers_[0]->mutable_grad(this);
   Tensor<cpu, 4> gsrc(nullptr, Shape4(batchsize_, channels_, height_, width_));
   if(gsrcblob!=nullptr)
@@ -171,7 +171,7 @@ void CaffeConvLayer::ComputeGradient(Phase phase) {
     if(gsrcblob!=nullptr){
       gcol = dot(weight.T(), grad[n]);
       caffe::col2im_cpu(gcol.dptr_, channels_, height_, width_,
-          kernel_, kernel_, pad_, pad_, stride_, stride_, gcol.dptr_);
+          kernel_, kernel_, pad_, pad_, stride_, stride_, gsrc[n].dptr_);
     }
   }
 }
@@ -599,12 +599,20 @@ void PoolingLayer::ComputeGradient(Phase phase) {
 
 void CaffePoolingLayer::Setup(const LayerProto& proto, int npartitions) {
   PoolingLayer::Setup(proto, npartitions);
-  mask_.ReshapeLike(data_);
+  if(pool_ == PoolingProto_PoolMethod_MAX)
+	  mask_.ReshapeLike(data_);
 }
 void CaffePoolingLayer::ComputeFeature(Phase phase, Metric* perf) {
-  caffe::forward_max_pooling(srclayers_[0]->mutable_data(this)->mutable_cpu_data(),
-      batchsize_, channels_, height_, width_, kernel_, kernel_, pad_, pad_,
-      stride_, stride_, data_.mutable_cpu_data(), mask_.mutable_cpu_data());
+  if(pool_ == PoolingProto_PoolMethod_MAX)
+	  caffe::forward_max_pooling(srclayers_[0]->mutable_data(this)->mutable_cpu_data(),
+		  batchsize_, channels_, height_, width_, kernel_, kernel_, pad_, pad_,
+		  stride_, stride_, data_.mutable_cpu_data(), mask_.mutable_cpu_data());
+  else if(pool_ == PoolingProto_PoolMethod_AVE)
+  	  caffe::forward_ave_pooling(srclayers_[0]->mutable_data(this)->mutable_cpu_data(),
+		  batchsize_, channels_, height_, width_, kernel_, kernel_, pad_, pad_,
+		  stride_, stride_, data_.mutable_cpu_data());
+  else
+    LOG(FATAL) << "unknow pooling method";
 }
 
 /*
@@ -612,11 +620,17 @@ void CaffePoolingLayer::ComputeFeature(Phase phase, Metric* perf) {
  * assume grad and data have the same paritition
  */
 void CaffePoolingLayer::ComputeGradient(Phase phase) {
-  caffe::backward_max_pooling(grad_.cpu_data(), mask_.cpu_data(), batchsize_,
-      channels_, height_, width_, kernel_, kernel_, pad_, pad_,
-      stride_, stride_,srclayers_[0]->mutable_grad(this)->mutable_cpu_data());
+  if(pool_ == PoolingProto_PoolMethod_MAX)
+	  caffe::backward_max_pooling(grad_.cpu_data(), mask_.cpu_data(), batchsize_,
+		  channels_, height_, width_, kernel_, kernel_, pad_, pad_,
+		  stride_, stride_,srclayers_[0]->mutable_grad(this)->mutable_cpu_data());
+  else if(pool_ == PoolingProto_PoolMethod_AVE)
+	  caffe::backward_ave_pooling(grad_.cpu_data(), batchsize_,
+		  channels_, height_, width_, kernel_, kernel_, pad_, pad_,
+		  stride_, stride_,srclayers_[0]->mutable_grad(this)->mutable_cpu_data());
+  else
+    LOG(FATAL) << "unknow pooling method";
 }
-
 
 /***************** Implementation for ReLULayer *****************************/
 

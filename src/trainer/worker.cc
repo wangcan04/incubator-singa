@@ -148,11 +148,11 @@ void Worker::Run() {
 
   step_ = modelproto_.step();
   InitLocalParams();
-  Metric perf;
-  for (auto layer: train_net_->layers()) {
+  for (unsigned i = 0; i< train_net_->layers().size(); i++) {
     elapsed_time_.push_back(0.f);
     elapsed_time_.push_back(0.f);
   }
+  Metric perf;
   auto start = get_time::now();
   while (!StopNow(step_)) {
     if (ValidateNow(step_)) {
@@ -184,14 +184,12 @@ void Worker::Run() {
     << std::chrono::duration_cast<ms>(diff).count() / (kClicks * step_) << " ms";
   auto fit = elapsed_time_.begin();
   auto bit = fit + train_net_->layers().size();
-  /*
   for (auto layer : train_net_->layers()) {
-    LOG(ERROR) << layer->name() << " forward: " << (*fit) / (kClicks * step_) << " ms";
-    LOG(ERROR) << layer->name() << " backward: " << (*bit) / (kClicks * step_) << " ms";
+    LOG(INFO) << layer->name() << " forward: " << (*fit) / (kClicks * step_) << " ms";
+    LOG(INFO) << layer->name() << " backward: " << (*bit) / (kClicks * step_) << " ms";
     fit ++;
     bit ++;
   }
-  */
 
   // save the model
   Checkpoint(step_, train_net_);
