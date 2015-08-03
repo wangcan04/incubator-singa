@@ -1,0 +1,51 @@
+<!doctype html>
+<html class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <title>singaconf</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="styles/bootstrap.css" />
+    <link rel="stylesheet" href="styles/main.css">
+  </head>
+  <body>
+    <!--[if lt IE 10]>
+      <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+    <![endif]-->
+  
+	<form name="submit" action="test/submit" method="post">
+	<div class="form-group">
+	  <label for="file">workspace:</label>
+	  <input  type="text" name="workspace" value="examples/chinesefood_10_32_test"/>
+	</div>
+	<button type="submit" class="btn btn-primary">Submit</button>
+	</form>
+        <br/>
+	<form name="submit" action="test/upload" method="post" enctype="multipart/form-data">
+	   <div class="form-group">
+	    <label for="file">workspace:</label>
+	    <input  type="text" name="workspace" value="examples/chinesefood_10_32_test"/>
+	  </div>
+	  <div class="form-group">
+	 
+	  <label for="file">image:</label>
+	  <input  type="file" name="file" id="file"/>
+	</div>
+	<button type="submit" class="btn btn-primary">Submit</button>
+	</form>
+          
+    <script src="scripts/jquery.js"></script> 
+    <script src="scripts/bootstrap.js"></script> 
+    <script>
+
+      $(document).ready(function(){
+        Model.init($("#configure"));
+        $("#configure").height(window.innerHeight-150);
+        $("#left").width(window.innerWidth*0.6-60);
+        $("#right").width(window.innerWidth*0.4-60);
+      });
+
+    </script>
+</body>
+</html>
