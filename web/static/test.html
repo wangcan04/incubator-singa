@@ -13,16 +13,19 @@
     <!--[if lt IE 10]>
       <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
     <![endif]-->
-  
-	<form name="submit" action="test/submit" method="post">
+       <div id="stage_one">
+	<form name="submit" action="test/submit" method="post" id="formOne">
 	<div class="form-group">
 	  <label for="file">workspace:</label>
 	  <input  type="text" name="workspace" value="examples/chinesefood_10_32_test"/>
 	</div>
-	<button type="submit" class="btn btn-primary">Submit</button>
+	
 	</form>
+	<button id="submit_one"  class="btn btn-primary">Submit</button>
+       </div>
         <br/>
-	<form name="submit" action="test/upload" method="post" enctype="multipart/form-data">
+       <div id="stage_two" style="display:none">
+	<form name="submit" action="test/upload" method="post" enctype="multipart/form-data" id="formTwo">
 	   <div class="form-group">
 	    <label for="file">workspace:</label>
 	    <input  type="text" name="workspace" value="examples/chinesefood_10_32_test"/>
@@ -32,19 +35,91 @@
 	  <label for="file">image:</label>
 	  <input  type="file" name="file" id="file"/>
 	</div>
-	<button type="submit" class="btn btn-primary">Submit</button>
 	</form>
-          
+	<button  id="sumbit_two" class="btn btn-primary">Submit</button>
+	
+       </div>
+
     <script src="scripts/jquery.js"></script> 
     <script src="scripts/bootstrap.js"></script> 
     <script>
 
-      $(document).ready(function(){
-        Model.init($("#configure"));
-        $("#configure").height(window.innerHeight-150);
-        $("#left").width(window.innerWidth*0.6-60);
-        $("#right").width(window.innerWidth*0.4-60);
-      });
+$(document).ready(function(){
+   $("#submit_one").bind("click",function(){ 
+    var fd = new FormData(document.getElementById("formOne"));
+    $.ajax({
+      url: "test/submit",
+      type: "POST",
+      data: fd, 
+processData: false,  // tell jQuery not to process the data
+      contentType: false,   // tell jQuery not to set contentType
+      
+      success:function(data){
+        data =JSON.parse(data);
+        if(data.result=="success"){
+           var workspace = $("#formOne").find("input[name='workspace']").val();
+           $("#formTwo").find("input[name='workspace']").val(workspace);
+           $("#stage_two").show();
+        }else{
+          alert(data.data);
+        }
+
+      },
+      error:function(e){
+        console.log(e);
+      }
+    });
+    return false;
+  });
+
+ $("#sumbit_two").bind("click",function(){ 
+    var fd = new FormData(document.getElementById("formTwo"));
+    $.ajax({
+      url: "test/upload",
+      type: "POST",
+      data: fd, 
+processData: false,  // tell jQuery not to process the data
+      contentType: false,   // tell jQuery not to set contentType
+      
+      success:function(data){
+        data =JSON.parse(data);
+        var info="";
+        if(data.result=="success"){
+           var data = data.data;
+           result = data.split("\n");
+           for(var i=0;i<10;i++){
+              var temp = result[i].split(":");
+              info+= name_map[temp[0]]+":"+parseFloat(temp[1])*100+"%\n";
+           }
+           alert(info);
+        }else{
+          alert(data.data);
+        }
+
+      },
+      error:function(e){
+        console.log(e);
+      }
+    });
+    return false;
+  });
+ var name_map={
+	"2":"上汤娃娃菜",
+"12":"农家小炒肉",
+"16":"凉拌木耳", 
+"22":"包子", 
+"40":"四喜丸子", 
+"45":"地三鲜", 
+"52":"宫保鸡丁", 
+"57":"山药排骨汤", 
+"58":"干煸豆角", 
+"64":"扬州炒饭"
+
+}
+
+
+
+});
 
     </script>
 </body>
