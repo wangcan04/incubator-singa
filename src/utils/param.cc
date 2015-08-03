@@ -54,7 +54,7 @@ void Param::InitValues(int version){
     /*
   case ParamProto::kUniformSqrtFanIn:
     CHECK_GT(fan_in_,0);
-    random->SampleUniform(data, proto_.low(), proto_.high());
+    random->SampleUniform(&data, proto_.low(), proto_.high());
     if(proto_.value())
       data*= proto_.value()/ sqrt(fan_in_ / 3.0f);
     break;
@@ -92,7 +92,7 @@ Msg* Param::GenPutMsg(bool copy, int idx) {
   CHECK_LT(idx, num_slices_);
   Msg* msg=new Msg();
   msg->set_type(kPut);
-  void *ptr=mutable_cpu_data()+slice_offset_[idx];
+  void *ptr=mutable_cpu_data() + slice_offset_[idx];
   void *p = ptr;
   if (copy) p = nullptr;
   msg->AddFormatFrame("iffp", slice_size_[idx],
@@ -120,10 +120,10 @@ Msg* Param::GenUpdateMsg(bool copy, int idx) {
   Msg* msg=new Msg();
   msg->set_type(kUpdate);
   msg->AddFormatFrame("i", copy);
-  void* ptr=grad_.mutable_cpu_data()+slice_offset_[idx];
+  void* ptr=grad_.mutable_cpu_data() + slice_offset_[idx];
   if(copy){
     //LOG(ERROR)<<"Copy in gen update";
-    msg->AddFrame(ptr, slice_size_[idx]*sizeof(float));
+    msg->AddFrame(ptr, slice_size_[idx] * sizeof(float));
   } else { // to share values of grad blob
     msg->AddFormatFrame("p", ptr);
   }
@@ -180,42 +180,30 @@ Msg* Param::HandleGetMsg(Msg** msg, bool reserve) {
 }
 
 void Param::ParseUpdateMsgs(const vector<Msg*>& msgs) {
-  bool reset = true;
-  vector<int> copies;
+  CHECK_GT(msgs.size(), 0);
+  float* server_grad = nullptr;
+  vector<float*> worker_grad;
   for (auto *msg : msgs) {
     int copy;
     msg->ParseFormatFrame("i", &copy);
-    reset = reset && copy;
-    copies.push_back(copy);
-  }
-  int idx = 0;
-  for (auto *msg : msgs) {
-    CHECK(msg->NextFrame());
-    if (copies.at(idx++)) {
-      float* server_grad = mutable_cpu_grad();
-      float* worker_grad = static_cast<float*> (msg->FrameData());
-      if (reset) {
-        memcpy(server_grad, worker_grad, sizeof(float) * size());
-        reset = false;
-      } else {
-        for (int i =0; i < size(); i++)
-          server_grad[i] += worker_grad[i];
-      }
+    msg->NextFrame();
+    float* ptr = nullptr;
+    if (copy) {
+      ptr = static_cast<float*> (msg->FrameData());
+      CHECK_EQ(size() * sizeof(float), msg->FrameSize());
     } else {
-      float* ptr = nullptr;
       msg->ParseFormatFrame("p", &ptr);
-      if (grad_.cpu_data() != ptr) {
-        memcpy(ptr, grad_.cpu_data(), msg->FrameSize());
-        grad_.set_cpu_data(ptr);
-      }
+      server_grad = ptr;
     }
+    worker_grad.push_back(ptr);
   }
-
-  if (msgs.size() > 1) {
-    float* server_grad = mutable_cpu_grad();
-    for (int i = 0; i < size(); i++)
-      server_grad[i] /= msgs.size();
-  }
+  if (server_grad == nullptr)
+    server_grad = worker_grad.at(0);
+  for (float* grad : worker_grad)
+    if (grad != server_grad)
+      for (int i =0; i < size(); i++)
+        server_grad[i] += grad[i];
+  grad_.set_cpu_data(server_grad);
 }
 
 const vector<Msg*> Param::GenUpdateResponseMsgs(const vector<Msg*>& msgs) {

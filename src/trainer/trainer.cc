@@ -288,11 +288,6 @@ void Trainer::Run(
   procs_id_ = cluster->procs_id();
   LOG(INFO) << "Stub in process " << procs_id_ << " starts";
 
-  // for sync among server groups
-  auto start = std::chrono::system_clock::now();
-  float trans_size = 0.f;  // total size of msg transferred since start time
-  int sync_server_id = 0;
-  int max_bandwidth = cluster->bandwidth();
   int nserver_grps = cluster->nserver_groups();
 
   map<int, Dealer*> inter_dealers;  // for sending msg to other procs
@@ -310,11 +305,6 @@ void Trainer::Run(
         LOG(ERROR) << "Connection broken!";
         exit(0);
       } else if (sock == nullptr) {
-        if (nserver_grps > 1 && bandwidth(trans_size, start) < max_bandwidth) {
-          Msg* msg = GenSyncReminderMsg(sync_server_id, servers);
-          router_->Send(&msg);
-          sync_server_id = (sync_server_id + 1) % nservers;
-        }
         continue;
       }
       Msg* msg = router_->Receive();
@@ -344,18 +334,10 @@ void Trainer::Run(
       if (flag != kStub)
         dst_procs = cluster->ProcsIDOf(AddrGrp(dst), AddrID(dst), flag);
       if (dst_procs != procs_id_) {
-        if (bandwidth(trans_size, start) <= cluster->bandwidth()) {
-          start = std::chrono::system_clock::now();
-          trans_size = 0;
-        }
-        trans_size += msg->size();
-
         if (inter_dealers.find(dst_procs) == inter_dealers.end())
           inter_dealers[dst_procs] = CreateInterProcsDealer(dst_procs);
         inter_dealers[dst_procs]->Send(&msg);
       } else {
-        if (type == kSyncRequest)
-          msg->AddFormatFrame("i", max_bandwidth - bandwidth(trans_size, start));
         router_->Send(&msg);
       }
     }
@@ -366,6 +348,7 @@ void Trainer::Run(
 }
 
 Msg* Trainer::GenSyncReminderMsg(int server, const vector<Server*>& servers ) {
+  LOG(FATAL) << "not implemented";
   Msg* msg = new Msg();
   msg->set_src(Addr(-1,-1, kStub));
   msg->set_dst(Addr(servers[server]->grp_id(), servers[server]->id(), kServer));
@@ -495,7 +478,7 @@ const vector<Msg*> Trainer::HandleUpdate(ParamEntry *entry, Msg** msg) {
         mshadow::Tensor<mshadow::cpu,1> grad((*it)->mutable_cpu_grad(), shape);
         sum += grad;
       }
-      sum /= entry->num_total;
+      // sum /= entry->num_total;
     }
     int step = (*msg)->trgt_version();
     GenMsgs(kUpdate, step, entry, *msg, &ret);

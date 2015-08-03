@@ -44,9 +44,6 @@ void Server::Run() {
   bool running = true;
   CHECK(cluster->runtime()->WatchSGroup(grp_id_, id_, Stop, &running));
 
-  int nserver_grps = cluster->nserver_groups();
-  vector<Param*> master_params;
-  size_t syncEntry=0;
   Poller poll(dealer);
   // start recv loop and process requests
   while (running) {
@@ -64,26 +61,10 @@ void Server::Run() {
     int slice_id = SliceID(msg->trgt_val());
     if (type == kPut) {
       response = HandlePut(&msg);
-      if(slice2group_[slice_id] == grp_id_)
-        master_params.push_back(shard_->at(slice_id)->shares.at(0));
     } else {
       if (shard_->find(slice_id) == shard_->end()) {
         // delay the processing by re-queue the msg.
         response = msg;
-      } else if (type == kSyncReminder) {
-        DeleteMsg(&msg);
-        if(syncEntry >= master_params.size())
-          continue;
-        auto param = master_params.at(syncEntry);
-        // control the frequency of synchronization
-        // currently sync is triggerred only when the slice is updated
-        // by local worker or other workers for at least nserver_groups times.
-        // TODO may optimize the trigger condition.
-        if (abs(param->local_version() - param->version()) >= nserver_grps) {
-          for (auto msg : GenSyncMsgs(param))
-            dealer->Send(&msg);
-          syncEntry = (syncEntry+1) % master_params.size();
-        }
       } else {
         switch (type) {
           case kGet:
@@ -118,22 +99,7 @@ void Server::Run() {
 
 const vector<Msg*> Server::GenSyncMsgs(Param* param) {
   vector<Msg*> ret;
-  // TODO replace the argument (0,0) to sync a chunk instead of a slice
-  auto msg = param->GenSyncMsg(0, 0);
-  auto cluster = Cluster::Get();
-  for (int i = 0; i < cluster->nserver_groups(); i++) {
-    if (i != grp_id_) {
-      Msg* tmp = msg;
-      if (i < cluster->nserver_groups() - 1)
-        tmp = new Msg(*msg);
-      // assume only one server per group, TODO generalize it
-      tmp->set_dst(Addr(i, 0, kServer));
-      tmp->set_src(Addr(grp_id_, id_, kServer));
-      ret.push_back(tmp);
-      param->set_version(param->local_version());
-      //LOG(ERROR)<<"sync slice="<<param->id()<<" to procs "<<i;
-    }
-  }
+  LOG(FATAL) << "not implemented";
   return ret;
 }
 
@@ -201,7 +167,7 @@ const vector<Msg*> Server::HandleUpdate(Msg **msg) {
     auto param = entry->shares.at(0);
     // extract and aggregate gradients
     param->ParseUpdateMsgs(request);
-    updater_->Update(step, param);
+    updater_->Update(step, param, 1.0f / entry->num_total);
     param->set_local_version(param->local_version() + 1);
     // response to all shares of this param
     for (auto response : param->GenUpdateResponseMsgs(request)) {
@@ -216,6 +182,7 @@ const vector<Msg*> Server::HandleUpdate(Msg **msg) {
 }
 
 Msg* Server::HandleSyncRequest(Msg **msg) {
+  LOG(FATAL) << "not implemented";
   Msg* msgg = *msg;
   int slice = SliceID(msgg->trgt_val());
   auto param = shard_->at(slice)->shares.at(0);
