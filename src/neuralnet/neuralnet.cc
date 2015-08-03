@@ -21,6 +21,8 @@ void NeuralNet::RegisterLayers() {
   RegisterLayer(factory, Concate);
   RegisterLayer(factory, Dropout);
   RegisterLayer(factory, InnerProduct);
+  RegisterLayer(factory, Input);
+  RegisterLayer(factory, Output);
   RegisterLayer(factory, Label);
   RegisterLayer(factory, LRN);
   RegisterLayer(factory, Mnist);

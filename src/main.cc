@@ -29,7 +29,7 @@ void RegisterClasses() {
 int main(int argc, char **argv) {
   google::InitGoogleLogging(argv[0]);
   gflags::ParseCommandLineFlags(&argc, &argv, true);
-
+ 
   singa::JobProto jobConf;
   std::string job_file = FLAGS_workspace + "/job.conf";
   singa::ReadProtoFromTextFile(job_file.c_str(), &jobConf);

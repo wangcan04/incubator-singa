@@ -6,6 +6,9 @@
 #include "neuralnet/layer.h"
 #include "utils/singleton.h"
 #include "utils/factory.h"
+#include <cstdio>
+#include <sys/stat.h>
+#include <unistd.h>
 
 using namespace mshadow;
 using namespace mshadow::expr;
@@ -458,7 +461,7 @@ void LabelLayer::ParseRecords(Phase phase, const vector<Record>& records,
   float *label= blob->mutable_cpu_data() ;
   for(const Record& record: records){
     label[rid++]=record.image().label();
-    CHECK_LT(record.image().label(),277);
+    CHECK_LT(record.image().label(),278);
   }
   CHECK_EQ(rid, blob->shape()[0]);
 }
@@ -556,6 +559,7 @@ void MnistLayer::Setup(const LayerProto& proto, int npartitions) {
   elastic_freq_=proto.mnist_conf().elastic_freq();
 
   int ndim=sample.image().shape_size();
+
   CHECK_GE(ndim,2);
   if(resize_)
     data_.Reshape(vector<int>{batchsize, resize_, resize_});
@@ -645,9 +649,13 @@ void ReLULayer::ComputeGradient(Phase phase) {
 
 void RGBImageLayer::ParseRecords(Phase phase,
     const vector<Record>& records, Blob<float>* blob){
+  LOG(ERROR) << "rgb parser";
+  
   const vector<int>& s=blob->shape();
   auto images = Tensor4(&data_);
-  const SingleLabelImageRecord& r=records.at(0).image();
+  const SingleLabelImageRecord& r=records.at(0).image(); 
+  LOG(ERROR) << r.shape().size();
+  
   Tensor<cpu, 3> raw_image(Shape3(r.shape(0),r.shape(1),r.shape(2)));
   AllocSpace(raw_image);
   Tensor<cpu, 3> croped_image(nullptr, Shape3(s[1],s[2],s[3]));
@@ -697,6 +705,8 @@ void RGBImageLayer::ParseRecords(Phase phase,
   FreeSpace(raw_image);
   if(cropsize_)
     FreeSpace(croped_image);
+  LOG(ERROR) << "rgb end parser";
+  
 }
 void RGBImageLayer::Setup(const LayerProto& proto, int npartitions) {
   ParserLayer::Setup(proto, npartitions);
@@ -811,7 +821,7 @@ void SoftmaxLossLayer::ComputeFeature(Phase phase, Metric* perf) {
   float loss=0, precision=0;
   for(int n=0;n<batchsize_;n++){
     int ilabel=static_cast<int>(label[n]);
-    CHECK_LT(ilabel,277);
+    CHECK_LT(ilabel,278);
     CHECK_GE(ilabel,0);
     float prob_of_truth=probptr[ilabel];
     loss-=log(std::max(prob_of_truth, FLT_MIN));
@@ -848,4 +858,89 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
   gsrc*=scale_/(1.0f*batchsize_);
 }
 
+
+/***************Implementation for InputLayer**************************/
+void InputLayer::ComputeFeature(Phase phase, Metric* perf){
+   LOG(ERROR) << "input layer compute";
+  
+   while(true){
+      struct stat buffer;   
+      if(stat(inputFilePath_.c_str(), &buffer) == 0){ // file exist
+         Record& record = records_.at(0);
+         singa::ReadProtoFromBinaryFile(inputFilePath_.c_str(),&record);
+         LOG(ERROR) << record.mutable_image()->shape().size();
+         remove(inputFilePath_.c_str()); 
+	 break;
+      } 
+      usleep(1000); //sleep for 1 second
+   }
+   
+   
+}
+
+void InputLayer::Setup(const LayerProto& proto, int npartitions) {
+  LOG(ERROR) << "input layer setup";
+  Layer::Setup(proto, npartitions);
+  SingleLabelImageRecord *slir = sample_.mutable_image();
+  slir->add_shape(3);
+  slir->add_shape(32);
+  slir->add_shape(32);   
+  inputFilePath_ = proto.input_conf().path();
+  batchsize_ = 1;
+  
+  records_.resize(1); 
+}
+
+/********** * Implementation for OutputLayer*************************/
+ 
+void OutputLayer::Setup(const LayerProto& proto, int npartitions) {
+  LOG(ERROR) << "output layer setup";
+  
+  LossLayer::Setup(proto, npartitions);
+  CHECK_EQ(srclayers_.size(),1);
+  data_.Reshape(srclayers_[0]->data(this).shape());
+  batchsize_=data_.shape()[0];
+  dim_=data_.count()/batchsize_;
+  topk_=proto.output_conf().topk();
+  scale_=proto.output_conf().scale();
+
+  outputFilePath_ = proto.output_conf().path();
+  
+}
+void OutputLayer::ComputeFeature(Phase phase, Metric* perf) {
+  LOG(ERROR) << "output layer setup";
+  
+  Shape<2> s=Shape2(batchsize_, dim_);
+  Tensor<cpu, 2> prob(data_.mutable_cpu_data(), s);
+  Tensor<cpu, 2> src(srclayers_[0]->mutable_data(this)->mutable_cpu_data(), s);
+  Softmax(prob, src); 
+
+  const float* probptr=prob.dptr;
+  std::ofstream write(outputFilePath_);
+     
+  for(int n=0;n<batchsize_;n++){
+    vector<std::pair<float, int> > probvec;
+    for (int j = 0; j < dim_; ++j) {
+      probvec.push_back(std::make_pair(probptr[j], j));
+    }
+    std::partial_sort(
+        probvec.begin(), probvec.begin() + topk_,
+        probvec.end(), std::greater<std::pair<float, int> >());
+    for (auto it = probvec.begin(); it < probvec.begin() + topk_; it++) {
+      float prob = it->first;
+      int label = it->second;
+      char str_buffer[24];
+      snprintf(str_buffer, 24, "%d:%f\n", label, prob);
+    
+      // write to file
+      write << string(str_buffer);
+  
+    }    
+    probptr+=dim_;
+  }
+
+  write.close();
+  CHECK_EQ(probptr, prob.dptr+prob.shape.Size());
+}
+  
 }  // namespace singa

@@ -182,10 +182,12 @@ message LayerProto {
     kShardData = 3;
     kDropout = 4;
     kInnerProduct = 5;
+    kInput = 25;
     kLabel = 18;
     kLMDBData = 17;
     kLRN = 6;
     kMnist = 7;
+    kOutput = 26;
     kPooling = 8;
     kPrefetch = 19;
     kReLU = 9;
@@ -218,13 +220,17 @@ message LayerProto {
   optional DropoutProto dropout_conf = 33;
   // configuration for inner product layer
   optional InnerProductProto innerproduct_conf = 34;
+  // configuration for input product layer
+  optional InputProto input_conf = 50;
   // configuration for local response normalization layer
   optional DataProto lmdbdata_conf = 35;
   // configuration for local response normalization layer
   optional LRNProto lrn_conf = 45;
   // configuration for mnist parser layer
   optional MnistProto mnist_conf= 36;
-  // configuration for pooling layer
+  // configuration for output product layer
+  optional OutputProto output_conf = 51;
+ // configuration for pooling layer
   optional PoolingProto pooling_conf = 37;
   // configuration for prefetch layer
   optional PrefetchProto prefetch_conf = 44;
@@ -362,6 +368,13 @@ message InnerProductProto {
   optional bool bias_term = 30 [default = true];
 }
 
+// Message that stores parameters used by InputLayer
+message InputProto {
+  // path to the input data file  absolute or relative to the workspace
+  required string path = 1;
+   
+}
+
 message LRNProto {
   // local response size
   required int32 local_size = 1 [default = 5];
@@ -379,6 +392,16 @@ message LRNProto {
   optional NormRegion norm_region = 33 [default = ACROSS_CHANNELS];
   // offset
   optional float knorm =34 [default = 1.0];
+}
+
+// Message that stores parameters used by OutLayer
+message OutputProto {
+  // path to the output data file  absolute or relative to the workspace
+  required string path = 1;
+   // computing accuracy against topk results
+  optional int32 topk = 2 [default = 1];
+  // loss scale factor
+  optional float scale= 30 [default = 1];
 }
 
 message PoolingProto {

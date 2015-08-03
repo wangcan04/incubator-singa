@@ -5,12 +5,14 @@ import shutil
 import glob
 import subprocess
 import zipfile
+import time
 from flask import Flask, request, make_response, send_from_directory
 from werkzeug import secure_filename
-
+  
 ALLOWED_EXTENSIONS = set(['zip'])
 job_dir = 'static/job/'
 upload_dir = 'static/upload/'
+test_upload_dir = 'static/test_upload'
 singa_dir = '..'
 
 DEMO = True
@@ -26,6 +28,93 @@ def indexpage():
 @app.route("/<path:path>", methods = ['GET'])
 def homepage(path):
   return send_from_directory('static', path)
+
+@app.route("/test", methods = ['GET'])
+def testpage():
+  return send_from_directory('static', 'test.html')
+
+@app.route("/test/submit", methods = ['POST'])
+def test_submit():
+  '''
+  submit a test workspace 
+  '''
+   
+  workspace = os.path.join(singa_dir, request.form['workspace']) 
+  
+  print workspace
+  #workspace = os.path.join(singa_dir, 'examples/cifar10')
+  if not os.path.isdir(workspace):
+    return json.dumps({'result': 'error', 'data': "No such workspace %s on server" % workspace})
+    
+  checkpoint_dir =os.path.join(workspace, 'checkpoint') 
+  
+  procs = subprocess.Popen([os.path.join(singa_dir, 'bin/singa-run.sh'), '-workspace=%s' % workspace], stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+  output = iter(procs.stdout.readline, '')
+  jobid = -1
+  for line in output:
+    if 'job_id' in line:
+      jobid = int(line.split('job_id =')[1].split(']')[0])
+      break
+  assert jobid >= 0, 'Wrong job id %d' % jobid
+  idstr = 'job' + str(jobid)
+  if idstr not in Joblist:
+    Joblist[idstr] = [procs, output, workspace]
+    cur_job_dir = os.path.join(job_dir, idstr)
+    if os.path.isdir(cur_job_dir):
+      print 'delete previous job folder %s ' % cur_job_dir
+      shutil.rmtree(cur_job_dir)
+    os.makedirs(cur_job_dir)
+  else:
+    return json.dumps({'result':'error', 'data': 'Repeated job ID'})
+  return json.dumps({'result': 'success', 'data': {'jobid': jobid}})
+
+@app.route("/test/upload", methods = ['POST'])
+def test_upload():
+  if request.method == 'POST':
+    workspace = os.path.join(singa_dir, request.form['workspace']) 
+    if not os.path.isdir(workspace):
+      return json.dumps({'result': 'error', 'data': "No such workspace %s on server" % workspace})
+    
+    file = request.files['file']
+    if file and file.filename :
+      if os.path.exists(os.path.join(workspace,"output.dat")):
+        os.remove(os.path.join(workspace,"output.dat"))
+      filePath = os.path.join(test_upload_dir,file.filename)
+      file.save(filePath)
+      byteArray = img2bin.centerFileToBin(filePath)
+      
+      record = common_pb2.Record()
+      record.image.shape.append(3)
+      record.image.shape.append(32)
+      record.image.shape.append(32)
+      record.image.pixel = str(byteArray)
+      recordStr = record.SerializeToString()
+  
+      data_file = open(os.path.join(workspace,"input.dat"), "wb")
+      data_file.write(recordStr)
+      data_file.close()
+      #wait for singa to write output.dat
+      output = ""
+      delay=0
+      while True and delay<60:
+        if os.path.exists(os.path.join(workspace,"output.dat")):
+          f = open(os.path.join(workspace,"output.dat"),"r")
+          output = f.read()
+          f.close() 
+          break
+        else:
+          time.sleep(1)
+          delay+=1
+      if delay == 60:
+        return json.dumps({'result': 'error', 'data': 'time expired!'})
+      return json.dumps({'result': 'success', 'data': output})
+    else:
+      return json.dumps({'result': 'error', 'data': 'error in uploading file'})
+  else:
+    return json.dumps({'result': 'error', 'data': 'must use POST'})
+
+
+
 
 @app.route("/static/<path:path>", methods = ['GET'])
 def static_page(path):
@@ -263,6 +352,8 @@ if __name__ == '__main__':
     sys.path.append(os.path.join(singa_dir, 'tool'))
     import plot_param
     import plot_feature
+    from pb2 import common_pb2
+    import img2bin
   else:
     print 'Usage: run demo mode with $>python webserver.py ', \
         ' run server mode with $>python webserver.py SINGA_ROOT'
@@ -271,10 +362,14 @@ if __name__ == '__main__':
   mydir = os.path.split(sys.argv[0])[0]
   job_dir = os.path.join(mydir, job_dir)
   upload_dir = os.path.join(mydir, upload_dir)
+  test_upload_dir = os.path.join(mydir,test_upload_dir)
   if not os.path.isdir(job_dir):
     os.makedirs(job_dir)
   if not os.path.isdir(upload_dir):
     os.makedirs(upload_dir)
+  if not os.path.isdir(test_upload_dir):
+    os.makedirs(test_upload_dir)
+  
 
 
   app.run(host = '0.0.0.0', debug = True, use_debugger = True)

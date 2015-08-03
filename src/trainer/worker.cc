@@ -58,19 +58,22 @@ void Worker::InitLocalParams() {
     }
     // load from checkpoint. Get param blob based on param name
     for (const auto checkpoint : modelproto_.checkpoint()) {
-      LOG(INFO) << "Load from checkpoint file " << checkpoint;
+      LOG(ERROR) << "Load from checkpoint file " << checkpoint;
       BlobProtos bps;
       ReadProtoFromBinaryFile(checkpoint.c_str(), &bps);
       for (int i = 0; i < bps.name_size(); i++) {
         if (name2param.find(bps.name(i)) != name2param.end()) {
           name2param.at(bps.name(i))->FromProto(bps.blob(i));
+	if(modelproto_.reset_param_version())
+          name2param.at(bps.name(i))->set_version(modelproto_.step());
+        else
           name2param.at(bps.name(i))->set_version(bps.version(i));
         }
       }
     }
     // init other params who do not have checkpoint version
     for (auto entry : name2param)
-      if (entry.second->version() < 0 || modelproto_.reset_param_version())
+      if (entry.second->version() < 0 )
         entry.second->InitValues(modelproto_.step());
 
     Metric perf;

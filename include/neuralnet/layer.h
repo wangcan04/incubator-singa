@@ -344,6 +344,7 @@ class ShardDataLayer: public DataLayer{
   shared_ptr<DataShard> shard_;
 };
 
+
 /**
  * This layer apply Tan function to neuron activations.
  * f(x)=A tanh(Bx)
@@ -362,6 +363,54 @@ class TanhLayer: public Layer {
   float outer_scale_, inner_scale_;
 };
 
+/**
+ * This is an input Layer to read a record from disk
+ */
+class InputLayer: public DataLayer{
+ public:
+  using Layer::ComputeFeature;
+
+  void Setup(const LayerProto& proto, int npartitions) override;
+  void ComputeFeature(Phase phase, Metric *perf) override;
+
+ private:
+  string inputFilePath_;
+};
+
+/**
+ * This is an output Layer to write result to disk
+ */
+ 
+class OutputLayer: public LossLayer {
+  /*
+   * connected from the label layer and the last fc layer
+   */
+ public:
+  using Layer::ComputeFeature;
+
+  void Setup(const LayerProto& proto, int npartitions) override;
+  void ComputeFeature(Phase phase, Metric *perf) override; 
+  void ComputeGradient(Phase phase) override {}
+  /**
+   * softmax is not recommendeded for partition because it requires the whole
+   * src layer for normalization.
+   */
+  int partition_dim() const override {
+    CHECK_LE(layer_proto_.partition_dim(), 1);
+    return layer_proto_.partition_dim();
+  }
+  ConnectionType src_neuron_connection(int k) const override {
+    // CHECK_LT(k, srclayers_.size());
+    return kOneToAll;
+  }
+
+ private:
+  int batchsize_;
+  int dim_;
+  float scale_;
+  int topk_;
+  string outputFilePath_;
+};
 
 }  // namespace singa
 
