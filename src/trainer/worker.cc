@@ -77,7 +77,6 @@ void Worker::InitLocalParams() {
     // init other params who do not have checkpoint version
     for (auto entry : name2param)
       if (entry.second->version() < 0) {
-        LOG(ERROR) << "init " << entry.first;
         entry.second->InitValues(modelproto_.step());
       }
 

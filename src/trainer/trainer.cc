@@ -86,7 +86,7 @@ void Trainer::SetupWorkerServer(
   auto net = NeuralNet::Create(net_conf, kTrain, grp_size);
   // MUST do SliceParam before share param/net with others
   auto slices = SliceParams(net->params());
-  shared_ptr<NeuralNet> train_net, test_net, valid_net;
+  shared_ptr<NeuralNet> train_net = nullptr, test_net = nullptr, valid_net = nullptr;
   int grp = workers.size() ? workers.at(0)->grp_id() : -1;
   if (grp == 0 && model_conf.test_steps()) {
     if (workers.size() > 0 && workers.at(0)->id() == 0) {
