@@ -4,7 +4,7 @@ namespace singa {
 
 /*********************LMDBDataLayer**********************************/
 void LMDBDataLayer::ComputeFeature(Phase phase, Metric* perf){
-  if(random_skip_){
+  if(random_skip_) {
     int nskip = rand() % random_skip_;
     int n=0;
     CHECK_EQ(mdb_cursor_get(mdb_cursor_, &mdb_key_,
@@ -91,7 +91,7 @@ void LMDBDataLayer::Setup(const LayerProto& proto, int npartitions) {
   SingleLabelImageRecord* record=sample_.mutable_image();
   ConvertCaffeDatumToRecord(datum, record);
 
-  batchsize_=batchsize();
+  batchsize_= proto.lmdbdata_conf().batchsize();
   if(partition_dim() == 0)
     batchsize_ /= npartitions;
   records_.resize(batchsize_);

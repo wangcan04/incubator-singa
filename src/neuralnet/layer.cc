@@ -754,15 +754,16 @@ ShardDataLayer::~ShardDataLayer() {
   delete shard_;
 }
 void ShardDataLayer::ComputeFeature(Phase phase, Metric* perf) {
-  if (shard_ == nullptr)
+  if (shard_ == nullptr) {
     shard_= new DataShard(layer_proto_.sharddata_conf().path(),
         DataShard::kRead);
+  }
   if (random_skip_) {
     int nskip = rand() % random_skip_;
     LOG(ERROR)<<"Random Skip "<<nskip<<" records, there are "<<shard_->Count()
       <<" records in total";
     string key;
-    for(int i=0;i<nskip;i++){
+    for(int i=0;i<nskip;i++) {
       shard_->Next(&key, &sample_);
     }
     random_skip_=0;

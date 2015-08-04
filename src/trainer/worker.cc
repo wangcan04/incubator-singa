@@ -369,6 +369,11 @@ void BPWorker::Forward(
       }
       auto start = get_time::now();
       layer->ComputeFeature(phase, perf);
+      /*
+      if (layer->is_datalayer())
+        LOG(ERROR) << "grp " << grp_id_ << " worker " << id_ << " partition id "
+          << layer->partition_id() << " name " << layer->name() << " shard " << static_cast<ShardDataLayer*>(layer)->shard_;
+          */
       auto diff = get_time::now() - start;
       *it_time += std::chrono::duration_cast<ms>(diff).count();
       it_time ++;
