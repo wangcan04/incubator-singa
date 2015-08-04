@@ -50,8 +50,8 @@ def plot_all_feature(infile, outfolder):
 
 if __name__ == "__main__":
   if len(sys.argv) != 3:
-    print 'Usage: python plot.py <path>'
-    print 'the program use <path.dat> as input to generate a picture at <path.jpg>'
+    print 'Usage: python plot.py <path> <out_folder>'
+    print 'the program use <path.dat> as input to generate a picture at <out_folder/>'
     sys.exit()
 
   plot_all_feature(sys.argv[1], sys.argv[2])
