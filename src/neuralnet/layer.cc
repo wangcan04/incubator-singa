@@ -759,7 +759,7 @@ void ShardDataLayer::ComputeFeature(Phase phase, Metric* perf) {
         DataShard::kRead);
   if (random_skip_) {
     int nskip = rand() % random_skip_;
-    LOG(INFO)<<"Random Skip "<<nskip<<" records, there are "<<shard_->Count()
+    LOG(ERROR)<<"Random Skip "<<nskip<<" records, there are "<<shard_->Count()
       <<" records in total";
     string key;
     for(int i=0;i<nskip;i++){

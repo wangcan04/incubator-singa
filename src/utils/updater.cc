@@ -70,7 +70,7 @@ void SGDUpdater::Update(int step, Param* param, float grad_scale){
   Tensor<cpu, 1> grad(param->mutable_cpu_grad(), s);
   float lr=GetLearningRate(step)*param->learning_rate_multiplier();
   float wd=weight_decay_*param->weight_decay_multiplier();
-  if(wd>0){ // L2 regularization
+  if(wd>0 ) { // L2 regularization
     grad+=data*wd;
   }
   if(momentum_>0){
@@ -101,7 +101,7 @@ void NesterovUpdater::Update(int step, Param* param, float grad_scale){
   if(step==0) history=0;
   float lr=GetLearningRate(step)*param->learning_rate_multiplier();
   float wd=weight_decay_*param->weight_decay_multiplier();
-  if(wd>0){ // L2 regularization
+  if(wd > 0) { // L2 regularization
     grad+=data*wd;
   }
   Copy(tmp, history);

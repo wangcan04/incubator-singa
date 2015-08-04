@@ -18,7 +18,7 @@ void Param::Setup(const ParamProto& proto, const vector<int>& shape){
   data_=std::make_shared<Blob<float>>(shape);
   grad_.Reshape(shape);
   history_.Reshape(shape);
-  proto_=proto;
+  proto_.CopyFrom(proto);
 }
 
 void Param::AddSlice(int slice_id, int size){
@@ -146,11 +146,13 @@ Msg* Param::HandlePutMsg(Msg** msg, bool reserve) {
   float lr, wc;
   float* ptr;
   (*msg)->ParseFormatFrame("iffp", &size, &lr, &wc, &ptr);
-  proto_.set_learning_rate_multiplier(lr);
-  proto_.set_weight_decay_multiplier(wc);
-  vector<int> shape{size};
+  LOG(ERROR) << "weight decay multiplier recved " << wc;
   ParamProto proto;
+  proto.set_learning_rate_multiplier(lr);
+  proto.set_weight_decay_multiplier(wc);
+  vector<int> shape{size};
   Setup(proto, shape);
+  // LOG(ERROR) << "weight decay multiplier from param " << weight_decay_multiplier();
   if (ptr == nullptr) {
     CHECK((*msg)->NextFrame());
     CHECK_EQ(size* sizeof(float), (*msg)->FrameSize());
