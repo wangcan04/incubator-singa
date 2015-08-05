@@ -1,4 +1,5 @@
 #include "singa.h"
+#include <cblas.h>
 /**
  * \file main.cc is the main entry of SINGA, like the driver program for Hadoop.
  *
@@ -39,6 +40,7 @@ int main(int argc, char **argv) {
     jobConf.mutable_cluster()->set_workspace(FLAGS_workspace);
 
   RegisterClasses();
+  openblas_set_num_threads(jobConf.openblas_num_threads());
   singa::SubmitJob(FLAGS_job, FLAGS_resume, jobConf);
   return 0;
 }

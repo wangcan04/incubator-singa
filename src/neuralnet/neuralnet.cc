@@ -140,7 +140,7 @@ void NeuralNet::CreateNetFromGraph(Graph* graph, int npartitions) {
   for (Node* node : graph->nodes()) {
     auto layer = name2layer_[node->name];
     layer->Setup(*(static_cast<LayerProto*>(node->proto)), npartitions);
-    DLOG(ERROR) << "layer name " << layer->name() << " loc " << layer->partition_id();
+    DLOG(INFO) << "layer name " << layer->name() << " loc " << layer->partition_id();
     layerinfo[layer->name()] = IntVecToString(layer->data(nullptr).shape());
     string param_name = "$";
     for (auto param : layer->GetParams()) {
