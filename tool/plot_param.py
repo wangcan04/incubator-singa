@@ -35,6 +35,9 @@ import os
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
+matplotlib.rcParams.update({'pdf.fonttype': 42})
+matplotlib.rcParams.update({'ps.fonttype': 42})
+
 def make_filter_fig(filters, outfile,  combine_chans):
   filter_start = 0
   fignum = 1
@@ -106,6 +109,8 @@ def plot_all_params(infile, outfolder):
   outprefix = os.path.join(outfolder, os.path.splitext(os.path.split(infile)[1])[0])
   for (name, blob) in zip(bps.name, bps.blob):
     filters = np.asarray(blob.data, dtype = np.float32).reshape(tuple(blob.shape))
+    if len(blob.shape) == 2:
+      filters = filters.reshape((1, blob.shape[0], blob.shape[1]))
     #print filters.shape
     #W = np.swapaxes(filters, 0, 1).reshape(3, blob.shape[1]/3, blob.shape[0])
     #print W.shape
