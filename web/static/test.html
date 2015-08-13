@@ -26,9 +26,8 @@
         <br/>
        <div id="stage_two" style="display:none">
 	<form name="submit" action="test/upload" method="post" enctype="multipart/form-data" id="formTwo">
-	   <div class="form-group">
-	    <label for="file">workspace:</label>
-	    <input  type="text" name="workspace" value="examples/chinesefood_10_32_test"/>
+	   <div class="form-group"> 
+	    <input  type="hidden" name="workspace" value="examples/chinesefood_10_32_test"/>
 	  </div>
 	  <div class="form-group">
 	 
@@ -38,6 +37,10 @@
 	</form>
 	<button  id="sumbit_two" class="btn btn-primary">Submit</button>
 	
+       </div>
+       <div id="result">
+          
+
        </div>
 
     <script src="scripts/jquery.js"></script> 
@@ -59,7 +62,8 @@ processData: false,  // tell jQuery not to process the data
         if(data.result=="success"){
            var workspace = $("#formOne").find("input[name='workspace']").val();
            $("#formTwo").find("input[name='workspace']").val(workspace);
-           $("#stage_two").show();
+           $("#stage_one").hide();
+	   $("#stage_two").show();
         }else{
           alert(data.data);
         }
@@ -89,9 +93,12 @@ processData: false,  // tell jQuery not to process the data
            result = data.split("\n");
            for(var i=0;i<10;i++){
               var temp = result[i].split(":");
-              info+= name_map[temp[0]]+":"+parseFloat(temp[1])*100+"%\n";
+	      var p = Math.floor(parseFloat(temp[1])*100);
+              if(p>1){
+                  info+= name_map[temp[0]]+":"+p+"%<br/>";
+              }
            }
-           alert(info);
+           $("#result").html(info);
         }else{
           alert(data.data);
         }
