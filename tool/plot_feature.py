@@ -7,6 +7,8 @@ from bh_tsne import bhtsne
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 matplotlib.rcParams.update({'font.size': 17})
+matplotlib.rcParams.update({'pdf.fonttype': 42})
+matplotlib.rcParams.update({'ps.fonttype': 42})
 import numpy as np
 
 def make_N_colors(cmap_name, N):
@@ -43,15 +45,18 @@ def plot_all_feature(infile, outfolder):
       fea = np.asarray(blob.data, dtype = np.float32).reshape(s)
       X = []
       Y = []
-      for point in bhtsne.bh_tsne(fea):
-        X.append(point[0])
-        Y.append(point[1])
-      plot2d(X, Y, labels, outprefix + '-' + name + '.png')
+      if fea.shape[1] == 2:
+        plot2d(fea[:,0], fea[:,1], labels, outprefix + '-' + name + '.png')
+      else:
+        for point in bhtsne.bh_tsne(fea):
+          X.append(point[0])
+          Y.append(point[1])
+        plot2d(X, Y, labels, outprefix + '-' + name + '.png')
 
 if __name__ == "__main__":
   if len(sys.argv) != 3:
-    print 'Usage: python plot.py <path>'
-    print 'the program use <path.dat> as input to generate a picture at <path.jpg>'
+    print 'Usage: python plot.py <path> <out_folder>'
+    print 'the program use <path.dat> as input to generate a picture at <out_folder/>'
     sys.exit()
 
   plot_all_feature(sys.argv[1], sys.argv[2])
