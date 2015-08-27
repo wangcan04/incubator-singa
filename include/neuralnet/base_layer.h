@@ -167,28 +167,10 @@ class Layer {
   inline void clear_srclayers() { srclayers_.clear(); }
   inline void add_srclayer(Layer* src) { srclayers_.push_back(src); }
   inline void add_dstlayer(Layer* dst) { dstlayers_.push_back(dst); }
-  virtual bool is_datalayer() const {
-    return false;
-  }
-  virtual bool is_parserlayer() const {
-    return false;
-  }
-  virtual bool is_losslayer() const {
-    return false;
-  }
   virtual bool is_bridgesrclayer() const {
     return false;
   }
   virtual bool is_bridgedstlayer() const {
-    return false;
-  }
-  virtual bool is_bridgelayer() const {
-    return false;
-  }
-  virtual bool is_vislayer() const {
-    return false;
-  }
-  virtual bool is_hidlayer() const {
     return false;
   }
 
@@ -285,9 +267,6 @@ class ConcateLayer: public Layer {
 class DataLayer: public Layer {
  public:
   void ComputeGradient(int flag, Metric* perf) override {}
-  bool is_datalayer() const override {
-    return true;
-  }
   Blob<float>* mutable_data(const Layer* layer) override {
     return nullptr;
   }
@@ -327,9 +306,6 @@ class ParserLayer : public Layer {
    */
   virtual void ParseRecords(Phase phase, const std::vector<Record>& records,
       Blob<float>* blob) = 0;
-  bool is_parserlayer() const override {
-    return true;
-  }
   Blob<float>* mutable_grad(const Layer* layer) override {
     return nullptr;
   }
@@ -355,9 +331,6 @@ class LossLayer: public Layer {
     LOG(FATAL) << "Loss layer has no gradient blob";
     return grad_;
   }
-  bool is_losslayer() const override {
-    return true;
-  }
 
  protected:
   Blob<float> metric_;
@@ -370,7 +343,6 @@ class BridgeLayer : public Layer {
  public:
   inline void set_ready(bool a) { ready_ = a; }
   inline bool ready() const { return ready_; }
-  bool is_bridgelayer() const override { return true; }
 
  protected:
   //!< true if received grad from BridgeDstLayer
