@@ -53,16 +53,6 @@ class Layer {
    * @param flag kTrain, kTest, kPositive, etc.
    */
   virtual void ComputeGradient(int flag, Metric* perf) = 0;
-  virtual void ComputeGradient(int flag, Metric* perf) = 0;
-  /**
-   * For print debug info about each layer, e.g., norm of feature vector,
-   * norm of parameters.
-   *
-   * @param step training/test/validation step
-   * @param flag forward/backward/positive/negative...
-   * @return debug info about this layer.
-   */
-  const string DebugString(int step, int flag);
   /**
    * Layers that have paramters must override this function.
    *
@@ -109,7 +99,7 @@ class Layer {
    * @param phase forward/backward/positive/negative...
    * @return debug info about this layer.
    */
-  virtual const std::string DebugString(int step, Phase phase);
+  virtual const std::string DebugString(int step, int flag);
   /**
    * @return partition dimension of this layer.
    * -1 for no partition;
@@ -176,7 +166,6 @@ class Layer {
 
  protected:
   LayerProto layer_proto_;
-<<<<<<< HEAD
   Blob<float> data_, grad_;
   vector<Layer*> srclayers_, dstlayers_;
 };
@@ -189,78 +178,10 @@ class BridgeLayer : public Layer {
   bool ready() const {
     return ready_;
   }
-  bool is_bridgelayer() const override {
-    return true;
-  }
-
  protected:
   //!< true if received grad from BridgeDstLayer
   bool ready_;
 };
-/**
- * For sending data to layer on other threads which may resident on other nodes
- * due to layer/data partition.
- */
-class BridgeSrcLayer: public BridgeLayer {
- public:
-  using Layer::ComputeFeature;
-  using Layer::ComputeGradient;
-
-  void ComputeFeature(int flag, Metric* perf) override {}
-  void ComputeGradient(int flag) override {
-    ready_ = false;
-  }
-
-  const Blob<float>& data(const Layer* from) const override {
-    return srclayers_[0]->data(this);
-  }
-  Blob<float>* mutable_data(const Layer* from) override {
-    return srclayers_[0]->mutable_data(this);
-  }
-  const Blob<float>& grad(const Layer* from) const override {
-    return srclayers_[0]->grad(this);
-  }
-  Blob<float>* mutable_grad(const Layer* from) override {
-    return srclayers_[0]->mutable_grad(this);
-  }
-
-  bool is_bridgesrclayer() const override {
-    return true;
-  }
-};
-/**
- * For recv data from layer on other threads which may resident on other nodes
- * due to layer/data partiton
- */
-class BridgeDstLayer: public BridgeLayer {
- public:
-  using Layer::ComputeFeature;
-  using Layer::ComputeGradient;
-
-  void Setup(const LayerProto& proto, int npartitions) override;
-  void ComputeFeature(int flag, Metric* perf) override {
-    // reset ready_ for next iteration.
-    ready_ = false;
-  }
-  void ComputeGradient(int flag) override {}
-  bool is_bridgedstlayer() const {
-    return true;
-  }
-};
-
-/**
- * Concate src layers on one dimension
- */
-class ConcateLayer: public Layer {
- public:
-  using Layer::ComputeFeature;
-  using Layer::ComputeGradient;
-
-  void Setup(const LayerProto& proto, int npartitions) override;
-  void ComputeFeature(int flag, Metric* perf) override;
-  void ComputeGradient(int flag) override;
-};
-
 /**
  * Base layer for reading records from local Shard, HDFS, lmdb, etc.
  */
@@ -334,19 +255,6 @@ class LossLayer: public Layer {
 
  protected:
   Blob<float> metric_;
-};
-
-/**
- * Base layer for sending/waiting remote messages.
- */
-class BridgeLayer : public Layer {
- public:
-  inline void set_ready(bool a) { ready_ = a; }
-  inline bool ready() const { return ready_; }
-
- protected:
-  //!< true if received grad from BridgeDstLayer
-  bool ready_;
 };
 
 /**
