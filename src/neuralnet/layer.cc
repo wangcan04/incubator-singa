@@ -2,36 +2,23 @@
 
 #include <glog/logging.h>
 #include <algorithm>
+#include <vector>
 #include "mshadow/tensor.h"
 #include "mshadow/cxxnet_op.h"
 #include "utils/singleton.h"
 
 namespace singa {
 
+using namespace mshadow;
 using mshadow::cpu;
-using mshadow::expr::broadcast;
-using mshadow::expr::chpool;
-using mshadow::expr::F;
-using mshadow::expr::pool;
-using mshadow::expr::sumall_except_dim;
-using mshadow::expr::unpool;
-using mshadow::op::power;
-using mshadow::op::relu;
-using mshadow::op::relu_grad;
-using mshadow::op::sigmoid;
-using mshadow::op::square;
-using mshadow::op::stanh;
-using mshadow::op::stanh_grad;
-using mshadow::op::threshold;
-using mshadow::Random;
-using mshadow::red::maximum;
-using mshadow::red::sum;
+
 using mshadow::Shape;
 using mshadow::Shape1;
 using mshadow::Shape2;
 using mshadow::Shape3;
 using mshadow::Shape4;
 using mshadow::Tensor;
+
 using std::string;
 using std::vector;
 
@@ -83,7 +70,7 @@ void ShardDataLayer::Setup(const LayerProto& proto, int npartitions) {
 }
 
 void ShardDataLayer::ComputeFeature(int flag, Metric* perf) {
-  if ((flag & kForward) == 0)
+  if ((flag & kForward) != kForward)
     return;
 
   if (shard_ == nullptr)
@@ -118,6 +105,9 @@ void LabelLayer::Setup(const LayerProto& proto, int npartitions) {
 
 void LabelLayer::ParseRecords(int flag, const vector<Record>& records,
                               Blob<float>* blob) {
+  if ((flag & kForward) != kForward)
+    return;
+
   int rid = 0;
   float *label = blob->mutable_cpu_data();
   for (const Record& record : records) {
@@ -130,7 +120,7 @@ void LabelLayer::ParseRecords(int flag, const vector<Record>& records,
 /**************** Implementation for MnistLayer ******************/
 void MnistLayer::ParseRecords(int flag,
     const vector<Record>& records, Blob<float>* blob){
-  if ((flag & kForward) == 0)
+  if ((flag & kForward) != kForward)
     return;
   LOG_IF(ERROR, records.size()==0)<<"Empty records to parse";
   int ndim=records.at(0).image().shape_size();
@@ -190,56 +180,60 @@ void MnistLayer::Setup(const LayerProto& proto, int npartitions) {
 
 /*************** Implementation for RGBImageLayer *************************/
 void RGBImageLayer::ParseRecords(int flag,
-    const vector<Record>& records, Blob<float>* blob){
-  if ((flag & kForward) == 0)
+    const vector<Record>& records, Blob<float>* blob) {
+  if ((flag & kForward) != kForward)
     return;
 
-  const vector<int>& s=blob->shape();
+  const vector<int>& s = blob->shape();
   auto images = Tensor4(&data_);
-  const SingleLabelImageRecord& r=records.at(0).image();
-  Tensor<cpu, 3> raw_image(Shape3(r.shape(0),r.shape(1),r.shape(2)));
+  const SingleLabelImageRecord& r = records.at(0).image();
+  Tensor<cpu, 3> raw_image(Shape3(r.shape(0), r.shape(1), r.shape(2)));
   AllocSpace(raw_image);
-  Tensor<cpu, 3> croped_image(nullptr, Shape3(s[1],s[2],s[3]));
-  if(cropsize_)
+  Tensor<cpu, 3> croped_image(nullptr, Shape3(s[1], s[2], s[3]));
+  if (cropsize_)
     AllocSpace(croped_image);
-    //CHECK(std::equal(croped_image.shape(), raw_image.shape());
-  int rid=0;
-  const float* meandptr=mean_.cpu_data();
-  for(const Record& record: records){
-    auto image=images[rid];
-    bool do_crop = cropsize_ > 0 && ((flag & kTrain) == kTrain);
+  //CHECK(std::equal(croped_image.shape, raw_image.shape));
+  int rid = 0;
+  const float* meandptr = mean_.cpu_data();
+  for (const Record& record : records) {
+    auto image = images[rid];
+    bool do_crop = cropsize_> 0 && ((flag & kTrain) == kTrain);
     bool do_mirror = mirror_ && rand() % 2 && ((flag & kTrain) == kTrain);
-    float* dptr=nullptr;
-    if(do_crop||do_mirror)
-      dptr=raw_image.dptr;
+    float* dptr = nullptr;
+    if (do_crop || do_mirror)
+      dptr = raw_image.dptr;
     else
-      dptr=image.dptr;
-    if(record.image().pixel().size()){
-      string pixel=record.image().pixel();
-      for(size_t i=0;i<pixel.size();i++)
-        dptr[i]=static_cast<float>(static_cast<uint8_t>(pixel[i]));
-    }else {
+      dptr = image.dptr;
+    if (record.image().pixel().size()) {
+      string pixel = record.image().pixel();
+      for (size_t i = 0; i < pixel.size(); i++)
+        dptr[i] = static_cast<float>(static_cast<uint8_t>(pixel[i]));
+    } else {
       memcpy(dptr, record.image().data().data(),
-          sizeof(float)*record.image().data_size());
+          sizeof(float) * record.image().data_size());
     }
-    for(int i=0;i<mean_.count();i++)
-      dptr[i]-=meandptr[i];
-
-    if(do_crop){
-      int hoff=rand()%(r.shape(1)-cropsize_);
-      int woff=rand()%(r.shape(2)-cropsize_);
-      Shape<2> cropshape=Shape2(cropsize_, cropsize_);
-      if(do_mirror){
-        croped_image=crop(raw_image, cropshape, hoff, woff);
-        image=mirror(croped_image);
-      }else{
-        image=crop(raw_image, cropshape, hoff, woff);
+    for (int i = 0; i < mean_.count(); i++)
+      dptr[i] -= meandptr[i];
+    if (do_crop) {
+      int hoff = rand() % (r.shape(1) - cropsize_);
+      int woff = rand() % (r.shape(2) - cropsize_);
+      Shape<2> cropshape = Shape2(cropsize_, cropsize_);
+      if (do_mirror) {
+        croped_image = crop(raw_image, cropshape, hoff, woff);
+        image = mirror(croped_image);
+      } else {
+        image = crop(raw_image, cropshape, hoff, woff);
       }
-    }else if(do_mirror){
-      image=mirror(raw_image);
+    } else if (do_mirror) {
+      image = mirror(raw_image);
     }
     rid++;
   }
+  if (scale_)
+    images = images * scale_;
+  FreeSpace(raw_image);
+  if (cropsize_)
+    FreeSpace(croped_image);
 }
 
 void RGBImageLayer::Setup(const LayerProto& proto, int npartitions) {
@@ -329,12 +323,12 @@ void ConvolutionLayer::ComputeFeature(int flag, Metric* perf){
   auto bias = Tensor1(bias_->mutable_data());
   for (int n = 0; n < batchsize_; n++) {
     if (pad_ > 0)
-      col = unpack_patch2col(pad(src[n], pad_), kernel_, stride_);
+      col = expr::unpack_patch2col(pad(src[n], pad_), kernel_, stride_);
     else
-      col = unpack_patch2col(src[n], kernel_, stride_);
+      col = expr::unpack_patch2col(src[n], kernel_, stride_);
     data[n] = dot(weight, col);
   }
-  data += broadcast<1>(bias, data.shape);
+  data += expr::broadcast<1>(bias, data.shape);
 }
 
 void ConvolutionLayer::ComputeGradient(int flag, Metric* perf) {
@@ -349,7 +343,7 @@ void ConvolutionLayer::ComputeGradient(int flag, Metric* perf) {
   Tensor<cpu, 4> gsrc(nullptr, Shape4(batchsize_, channels_, height_, width_));
   if (gsrcblob != nullptr)
     gsrc.dptr = gsrcblob->mutable_cpu_data();
-  gbias = sumall_except_dim<1>(grad);
+  gbias = expr::sumall_except_dim<1>(grad);
   gweight = 0.0f;
   Shape<3> padshp(gsrc.shape.SubShape());
   padshp[0] += 2 * pad_;
@@ -357,13 +351,14 @@ void ConvolutionLayer::ComputeGradient(int flag, Metric* perf) {
   Shape<2> imgshp = Shape2(height_, width_);
   for (int n = 0; n < batchsize_; n++) {
     if (pad_ > 0)
-      col = unpack_patch2col(pad(src[n], pad_), kernel_, stride_);
+      col = expr::unpack_patch2col(pad(src[n], pad_), kernel_, stride_);
     else
-      col = unpack_patch2col(src[n], kernel_, stride_);
+      col = expr::unpack_patch2col(src[n], kernel_, stride_);
     gweight += dot(grad[n], col.T());
     if (gsrcblob != nullptr) {
       gcol = dot(weight.T(), grad[n]);
-      gsrc[n] = crop(pack_col2patch(gcol, padshp, kernel_, stride_), imgshp);
+      gsrc[n] = crop(expr::pack_col2patch(gcol, padshp, kernel_, stride_),
+          imgshp);
     }
   }
 }
@@ -385,7 +380,7 @@ void DropoutLayer::ComputeFeature(int flag, Metric* perf) {
   }
   float pkeep = 1 - pdrop_;
   auto mask = Tensor1(&mask_);
-  mask = F<threshold>(TSingleton<Random<cpu>>::Instance() \
+  mask = expr::F<op::threshold>(TSingleton<Random<cpu>>::Instance() \
                       ->uniform(mask.shape), pkeep) * (1.0f/pkeep);
   auto data = Tensor1(&data_);
   auto src = Tensor1(srclayers_[0]->mutable_data(this));
@@ -448,8 +443,8 @@ void RBMVisLayer::ComputeFeature(int flag, Metric* perf) {
     auto weight = Tensor2(weight_->mutable_data());
     auto bias = Tensor1(bias_->mutable_data());
     data = dot(hid_sample, weight);
-    data += repmat(bias, batchsize_);
-    data = F<op::sigmoid>(data);
+    data += expr::repmat(bias, batchsize_);
+    data = expr::F<op::sigmoid>(data);
     if ((flag & kTest) == kTest) {
       const float *dptr = data_.cpu_data(), *rcns = neg_data_.cpu_data();
       float err = 0.f;
@@ -465,8 +460,8 @@ void RBMVisLayer::ComputeGradient(int flag, Metric* perf) {
   auto vis_pos = Tensor2(&data_);
   auto vis_neg = Tensor2(&neg_data_);
     auto gbias = Tensor1(bias_->mutable_grad());
-  gbias = sum_rows(vis_neg);
-  gbias -= sum_rows(vis_pos);
+  gbias = expr::sum_rows(vis_neg);
+  gbias -= expr::sum_rows(vis_pos);
 }
 /**************** Implementation for RBMHidLayer********************/
 RBMHidLayer::~RBMHidLayer() {
@@ -526,10 +521,10 @@ void RBMHidLayer::ComputeFeature(int flag, Metric* perf) {
     src = Tensor2(vis_layer_->Sample(flag));
   }
   data = dot(src, weight.T());
-  data += repmat(bias, batchsize_);
+  data += expr::repmat(bias, batchsize_);
 
   if (!gaussian_)
-    data = F<op::sigmoid>(data);
+    data = expr::F<op::sigmoid>(data);
 }
 
 void RBMHidLayer::ComputeGradient(int flag, Metric* perf) {
@@ -539,8 +534,8 @@ void RBMHidLayer::ComputeGradient(int flag, Metric* perf) {
   auto vis_neg = Tensor2(vis_layer_->mutable_data(this));
 
   auto gbias = Tensor1(bias_->mutable_grad());
-  gbias = sum_rows(hid_neg);
-  gbias -= sum_rows(hid_pos);
+  gbias = expr::sum_rows(hid_neg);
+  gbias -= expr::sum_rows(hid_pos);
   gbias /= batchsize_;
 
   auto gweight = Tensor2(weight_->mutable_grad());
@@ -559,6 +554,8 @@ void InnerProductLayer::Setup(const LayerProto& proto, int npartitions) {
   CHECK_EQ(srclayers_.size(), 1);
   const auto& src = srclayers_[0]->data(this);
   batchsize_ = src.shape()[0];
+  vdim_ = src.count() / batchsize_;
+  hdim_ = layer_proto_.innerproduct_conf().num_output();
   transpose_ = proto.innerproduct_conf().transpose();
   if (partition_dim() > 0)
     hdim_ /= npartitions;
@@ -574,6 +571,8 @@ void InnerProductLayer::Setup(const LayerProto& proto, int npartitions) {
 }
 
 void InnerProductLayer::ComputeFeature(int flag, Metric* perf) {
+  if ((flag & kForward) != kForward)
+    return;
   auto data = Tensor2(&data_);
   auto src = Tensor2(srclayers_[0]->mutable_data(this));
   auto weight = Tensor2(weight_->mutable_data());
@@ -583,19 +582,17 @@ void InnerProductLayer::ComputeFeature(int flag, Metric* perf) {
   else
     data = dot(src, weight.T());
   // repmat: repeat bias vector into batchsize rows
-  data += repmat(bias, batchsize_);
+  data += expr::repmat(bias, batchsize_);
 }
 
 void InnerProductLayer::ComputeGradient(int flag, Metric* perf) {
-  if ((flag & kForward) != kForward)
-    return;
   auto src = Tensor2(srclayers_[0]->mutable_data(this));
   auto grad = Tensor2(&grad_);
   auto weight = Tensor2(weight_->mutable_data());
   auto gweight = Tensor2(weight_->mutable_grad());
   auto gbias = Tensor1(bias_->mutable_grad());
 
-  gbias = sum_rows(grad);
+  gbias = expr::sum_rows(grad);
   if (transpose_)
     gweight = dot(src.T(), grad);
   else
@@ -608,26 +605,6 @@ void InnerProductLayer::ComputeGradient(int flag, Metric* perf) {
       gsrc = dot(grad, weight);
   }
 }
-/*****************************************************************************
- * Implementation for LabelLayer
- *****************************************************************************/
-void LabelLayer::Setup(const LayerProto& proto, int npartitions){
-  Layer::Setup(proto, npartitions);
-  CHECK_EQ(srclayers_.size(),1);
-  int batchsize=static_cast<DataLayer*>(srclayers_[0])->batchsize();
-  data_.Reshape(vector<int>{batchsize});
-}
-
-void LabelLayer::ParseRecords(int flag, const vector<Record>& records,
-    Blob<float>* blob){
-  int rid=0;
-  float *label= blob->mutable_cpu_data() ;
-  for(const Record& record: records){
-    label[rid++]=record.image().label();
-    //  CHECK_LT(record.image().label(),10);
-  }
-}
-
 /***************** Implementation for LRNLayer *************************/
 void LRNLayer::Setup(const LayerProto& proto, int npartitions) {
   Layer::Setup(proto, npartitions);
@@ -653,8 +630,9 @@ void LRNLayer::ComputeFeature(int flag, Metric* perf) {
   auto data = Tensor4(&data_);
   auto norm = Tensor4(&norm_);
   // stores normalizer without power
-  norm = chpool<sum>(F<square>(src), lsize_) * salpha + knorm_;
-  data = src * F<power>(norm, -beta_);
+  norm = expr::chpool<red::sum>(expr::F<op::square>(src), lsize_) * salpha
+    + knorm_;
+  data = src * expr::F<op::power>(norm, -beta_);
 }
 
 void LRNLayer::ComputeGradient(int flag, Metric* perf) {
@@ -664,9 +642,9 @@ void LRNLayer::ComputeGradient(int flag, Metric* perf) {
   auto grad = Tensor4(&grad_);
   auto gsrc = Tensor4(srclayers_[0]->mutable_grad(this));
 
-  gsrc = grad * F<op::power>( norm, -beta_ );
-  gsrc += ( - 2.0f * beta_ * salpha ) * chpool<red::sum>(
-      grad * src * F<op::power>( norm, -beta_-1.0f ), lsize_ )  * src;
+  gsrc = grad * expr::F<op::power>( norm, -beta_ );
+  gsrc += ( - 2.0f * beta_ * salpha ) * expr::chpool<red::sum>(
+      grad * src * expr::F<op::power>( norm, -beta_-1.0f ), lsize_ )  * src;
 }
 
 /******************** Implementation for PoolingLayer******************/
@@ -702,9 +680,10 @@ void PoolingLayer::ComputeFeature(int flag, Metric* perf) {
   auto src = Tensor4(srclayers_[0]->mutable_data(this));
   auto data = Tensor4(&data_);
   if (pool_ == PoolingProto_PoolMethod_MAX)
-    data = pool<maximum>(src, kernel_, stride_);
+    data = expr::pool<red::maximum>(src, kernel_, stride_);
   else if (pool_ == PoolingProto_PoolMethod_AVE)
-    data = pool<sum>(src, kernel_, stride_) * (1.0f / (kernel_ * kernel_));
+    data = expr::pool<red::sum>(src, kernel_, stride_)
+      * (1.0f / (kernel_ * kernel_));
 }
 
 /*
@@ -717,9 +696,9 @@ void PoolingLayer::ComputeGradient(int flag, Metric* perf) {
   auto data = Tensor4(&data_);
   auto grad = Tensor4(&grad_);
   if (pool_ == PoolingProto_PoolMethod_MAX)
-    gsrc = unpool<maximum>(src, data, grad, kernel_, stride_);
+    gsrc = expr::unpool<red::maximum>(src, data, grad, kernel_, stride_);
   else if (pool_ == PoolingProto_PoolMethod_AVE)
-    gsrc = unpool<sum>(src, data, grad, kernel_, stride_)
+    gsrc = expr::unpool<red::sum>(src, data, grad, kernel_, stride_)
            * (1.0f / (kernel_ * kernel_));
 }
 
@@ -733,52 +712,14 @@ void ReLULayer::Setup(const LayerProto& proto, int npartitions) {
 void ReLULayer::ComputeFeature(int flag, Metric* perf) {
   auto data = Tensor1(&data_);
   auto src = Tensor1(srclayers_[0]->mutable_data(this));
-  data = F<relu>(src);
+  data = expr::F<op::relu>(src);
 }
 
 void ReLULayer::ComputeGradient(int flag, Metric* perf) {
   auto data = Tensor1(&data_);
   auto grad = Tensor1(&grad_);
   auto gsrc = Tensor1(srclayers_[0]->mutable_grad(this));
-  gsrc = F<relu_grad>(data)*grad;
-}
-
-/**************** Implementation for RBMHidLayer********************/
-RBMHidLayer::~RBMHidLayer() {
-  delete weight_;
-  delete bias_;
-}
-void RBMHidLayer::Setup(const LayerProto& proto, int npartitions) {
-  Layer::Setup(proto, npartitions);
-  CHECK_EQ(srclayers_.size(), 1);
-  const auto& src_data = srclayers_[0]->data(this, kPositive);
-  const auto& src_sample = srclayers_[0]->data(this, kNegative);
-  scale_ = static_cast<float> (1.0f);
-  batchsize_ = src_data.shape()[0];
-  neg_batchsize_ = src_sample.shape()[0];
-  vdim_ = src_data.count() / batchsize_;
-  hdim_ = proto.rbmhid_conf().hid_dim();
-  data_.Reshape(vector<int>{batchsize_, hdim_});
-  hid_sample_.Reshape(vector<int>{neg_batchsize_, hdim_});
-  weight_ = Param::Create(proto.param(0));
-  bias_ = Param::Create(proto.param(1));
-  weight_->Setup(proto.param(0), vector<int>{vdim_, hdim_});
-  bias_->Setup(proto.param(1), vector<int>{hdim_});
-}
-
-void RBMHidLayer::ComputeGradient(int flag, Metric* perf) {
-  auto data = Tensor2(&data_);
-  auto hid_sample = Tensor2(&hid_sample_);
-  auto gbias = Tensor1(bias_->mutable_grad());
-  gbias = sum_rows(hid_sample);
-  gbias -= sum_rows(data);
-  gbias *= scale_ / (1.0f * batchsize_);
-}
-
-/**************** Implementation for RBMVisLayer********************/
-RBMVisLayer::~RBMVisLayer() {
-  delete weight_;
-  delete bias_;
+  gsrc = expr::F<op::relu_grad>(data)*grad;
 }
 
 /*******************Implementation of SigmoidLayer***************************/
@@ -789,74 +730,63 @@ void SigmoidLayer::Setup(const LayerProto& proto, int npartitions) {
 }
 
 void SigmoidLayer::ComputeFeature(int flag, Metric* perf) {
+  if((flag & kForward) != kForward)
+    return;
   auto data = Tensor1(&data_);
   auto src = Tensor1(srclayers_[0]->mutable_data(this));
-  data = F<op::sigmoid>(src);
+  data = expr::F<op::sigmoid>(src);
 }
 
 void SigmoidLayer::ComputeGradient(int flag, Metric* perf) {
   auto data = Tensor1(&data_);
   auto grad = Tensor1(&grad_);
   auto gsrc = Tensor1(srclayers_[0]->mutable_grad(this));
-  gsrc = F<op::sigmoid_grad>(data)*grad;
+  gsrc = expr::F<op::sigmoid_grad>(data) * grad;
 }
 /*******************Implementation of TanLayer***************************/
-void TanhLayer::Setup(const LayerProto& proto, int npartitions) {
+void STanhLayer::Setup(const LayerProto& proto, int npartitions) {
   Layer::Setup(proto, npartitions);
   data_.ReshapeLike(srclayers_[0]->data(this));
   grad_.ReshapeLike(srclayers_[0]->grad(this));
 }
 
-void TanhLayer::ComputeFeature(int flag, Metric* perf) {
+void STanhLayer::ComputeFeature(int flag, Metric* perf) {
   auto data = Tensor1(&data_);
   auto src = Tensor1(srclayers_[0]->mutable_data(this));
-  data = F<stanh>(src);
+  data = expr::F<op::stanh>(src);
 }
 
-void TanhLayer::ComputeGradient(int flag, Metric* perf) {
+void STanhLayer::ComputeGradient(int flag, Metric* perf) {
   auto data = Tensor1(&data_);
   auto grad = Tensor1(&grad_);
   auto gsrc = Tensor1(srclayers_[0]->mutable_grad(this));
-  gsrc = F<stanh_grad>(data) * grad;
+  gsrc = expr::F<op::stanh_grad>(data) * grad;
 }
 /********** * Implementation for EuclideanLossLayer*************************/
-void EuclideanLossLayer::Setup(const LayerProto& proto, int npartitions) {
-  LossLayer::Setup(proto, npartitions);
-  CHECK_EQ(srclayers_.size(), 2);
-  data_.Reshape(srclayers_[0]->data(this).shape());
-  batchsize_ = data_.shape()[0];
-  dim_ = data_.count()/batchsize_;
-  metric_.Reshape(vector<int>{1});
-}
 void EuclideanLossLayer::ComputeFeature(int flag, Metric* perf) {
+  int count = srclayers_[0]->data(this).count();
+  CHECK_EQ(count, srclayers_[1]->data(this).count());
   const float* reconstruct_dptr = srclayers_[0]->data(this).cpu_data();
   const float* input_dptr = srclayers_[1]->data(this).cpu_data();
   float loss = 0;
-  for (int n = 0; n < batchsize_; n++) {
-    for (int j = 0; j < dim_; ++j) {
-      loss += (input_dptr[j] - reconstruct_dptr[j]) *
-        (input_dptr[j] - reconstruct_dptr[j]);
-    }
-    reconstruct_dptr +=dim_;
-    input_dptr +=dim_;
+  for (int i = 0; i < count; i++) {
+      loss += (input_dptr[i] - reconstruct_dptr[i]) *
+        (input_dptr[i] - reconstruct_dptr[i]);
   }
-  CHECK_EQ(reconstruct_dptr,
-      srclayers_[0]->data(this).cpu_data() + (batchsize_*dim_));
-  CHECK_EQ(input_dptr,
-      srclayers_[1]->data(this).cpu_data() + (batchsize_*dim_));
-  perf->Add("loss", loss / batchsize_);
+  perf->Add("loss", loss / srclayers_[0]->data(this).shape()[0]);
 }
 void EuclideanLossLayer::ComputeGradient(int flag, Metric* perf) {
+  int count = srclayers_[0]->data(this).count();
+  CHECK_EQ(count, srclayers_[1]->data(this).count());
   const float* reconstruct_dptr = srclayers_[0]->data(this).cpu_data();
   const float* input_dptr = srclayers_[1]->data(this).cpu_data();
   Blob<float>* gsrcblob = srclayers_[0]->mutable_grad(this);
   float* gsrcptr = gsrcblob->mutable_cpu_data();
-  for (int n = 0; n < batchsize_; n++) {
-    for (int j = 0; j < dim_; j++)
-    gsrcptr[n*dim_+j] = 2 * (reconstruct_dptr[n*dim_+j]-input_dptr[n*dim_+j]);
+  for (int i = 0; i < count; i++) {
+    gsrcptr[i] = reconstruct_dptr[i]-input_dptr[i];
   }
   Tensor<cpu, 1> gsrc(gsrcptr, Shape1(gsrcblob->count()));
-  gsrc /= batchsize_;
+  gsrc /= srclayers_[0]->data(this).shape()[0];
 }
 
 /********** * Implementation for SoftmaxLossLayer*************************/
@@ -899,7 +829,7 @@ void SoftmaxLossLayer::ComputeFeature(int flag, Metric* perf) {
     }
     probptr += dim_;
   }
-  CHECK_EQ(probptr, prob.dptr+prob.shape.Size());
+  CHECK_EQ(probptr, prob.dptr + prob.shape.Size());
   perf->Add("loss", loss * scale_ / (1.0f * batchsize_));
   perf->Add("accuracy", precision * scale_ / (1.0f * batchsize_));
 }
@@ -954,6 +884,7 @@ void ConcateLayer::ComputeGradient(int flag, Metric* perf) {
 
 /************* Implementation for SliceLayer****************/
 void SliceLayer::Setup(const LayerProto& proto, int npartitions) {
+  /*
   Layer::Setup(proto, npartitions);
   slice_dim_ = proto.slice_conf().slice_dim();
   slice_num_ = npartitions;
@@ -973,9 +904,12 @@ void SliceLayer::Setup(const LayerProto& proto, int npartitions) {
     gradvec_[i].Reshape(newshape);
     // LOG(ERROR)<<"slice "<<IntVecToString(newshape);
   }
+  */
+  LOG(FATAL) << "Not implemented";
 }
 
 void SliceLayer::ComputeFeature(int flag, Metric *perf) {
+  /*
   CHECK_EQ(srclayers_.size(), 1);
   if (slice_dim_ == 0) {
     const auto& blob = srclayers_.at(0)->data(this);
@@ -986,12 +920,15 @@ void SliceLayer::ComputeFeature(int flag, Metric *perf) {
       memcpy(dst, src, size*sizeof(float));
     }
   }
+  */
+  LOG(FATAL) << "Not implemented";
 }
 
 void SliceLayer::ComputeGradient(int flag, Metric* perf) {
-  // LOG(FATAL) << "Not implemented";
+  LOG(FATAL) << "Not implemented";
 }
 
+/*
 int SliceLayer::SliceID(const Layer* layer) const {
   CHECK(layer != nullptr);
   for (size_t i = 0; i < datavec_.size(); i++) {
@@ -1001,7 +938,7 @@ int SliceLayer::SliceID(const Layer* layer) const {
   }
   CHECK(false);
   return -1;
-}
+}*/
 
 /************* Implementation for SplitLayer****************/
 void SplitLayer::Setup(const LayerProto& proto, int npartitions) {

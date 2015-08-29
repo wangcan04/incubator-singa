@@ -44,18 +44,20 @@ class Layer {
   /**
    * Compute features of this layer based on connected layers.
    *
-   * @param flag kTrain, kTest, kPositive, etc.
+   * @param perf pointer to Metric obj for collect and aggregate performance
    */
   virtual void ComputeFeature(int flag, Metric* perf) = 0;
   /**
    * Compute gradients for parameters and connected layers.
-   *
-   * @param flag kTrain, kTest, kPositive, etc.
+   * @param flag used to get the calling phase, e.g., forward of training
+   * (kForward | kTrain)
+   * @param flag used to get the calling phase, e.g., forward of training
    */
   virtual void ComputeGradient(int flag, Metric* perf) = 0;
   /**
    * Layers that have paramters must override this function.
-   *
+   * @param flag used to get the calling phase, e.g., forward of training
+   * (kForward | kTrain)
    * @return parameters associated with this layer
    */
   virtual const std::vector<Param*> GetParams() const {
@@ -96,7 +98,8 @@ class Layer {
    * norm of parameters.
    *
    * @param step training/test/validation step
-   * @param phase forward/backward/positive/negative...
+   * @param flag used to get the calling phase, e.g., forward of training
+   * (kForward | kTrain)
    * @return debug info about this layer.
    */
   virtual const std::string DebugString(int step, int flag);
@@ -167,7 +170,7 @@ class Layer {
  protected:
   LayerProto layer_proto_;
   Blob<float> data_, grad_;
-  vector<Layer*> srclayers_, dstlayers_;
+  std::vector<Layer*> srclayers_, dstlayers_;
 };
 
 class BridgeLayer : public Layer {
@@ -220,12 +223,12 @@ class DataLayer: public Layer {
  */
 class ParserLayer : public Layer {
  public:
-  void ComputeFeature(Phase phase, Metric* perf) override;
-  void ComputeGradient(Phase phase, Metric* perf) override {}
+  void ComputeFeature(int flag, Metric* perf) override;
+  void ComputeGradient(int flag, Metric* perf) override {}
   /**
    * Parse records from DataLayer into blob.
    */
-  virtual void ParseRecords(Phase phase, const std::vector<Record>& records,
+  virtual void ParseRecords(int flag, const std::vector<Record>& records,
       Blob<float>* blob) = 0;
   Blob<float>* mutable_grad(const Layer* layer) override {
     return nullptr;
@@ -274,36 +277,24 @@ class ConnectionLayer : public Layer {
 class PrefetchLayer : public Layer {
  public:
   ~PrefetchLayer();
-  void Setup(const LayerProto& proto, int npartitions) override;
-  void ComputeFeature(Phase phase, Metric* perf) override;
-  void ComputeGradient(Phase phase, Metric* perf) override {}
-  const Blob<float>& data(const Layer* from, Phase phase) const override;
-  void Prefetch(Phase phase);
-  Blob<float>* mutable_data(const Layer* layer, Phase phase) override;
-  Blob<float>* mutable_grad(const Layer* layer) override {
-    return nullptr;
-  }
-  const Blob<float>& grad(const Layer* from) const override {
-    CHECK(false) << "Loss layer has not gradient blob";
-    return grad_;
-  }
+  void ComputeFeature(int flag, Metric* perf) override;
+  void ComputeGradient(int flag, Metric* perf) override {}
 
  protected:
-  std::vector<Layer*> sublayers_;
-  std::map<std::string, Blob<float>> datablobs_;
   std::thread thread_;
 };
 
 class RBMLayer: public Layer {
  public:
+  virtual ~RBMLayer() {}
   const Blob<float>& neg_data(const Layer* layer) {
     return neg_data_;
   }
   Blob<float>* mutable_neg_data(const Layer* layer) {
     return &neg_data_;
   }
-  const vector<Param*> GetParams() const override {
-    vector<Param*> params{weight_, bias_};
+  const std::vector<Param*> GetParams() const override {
+    std::vector<Param*> params{weight_, bias_};
     return params;
   }
   virtual Blob<float>* Sample(int flat) = 0;

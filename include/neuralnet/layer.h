@@ -19,7 +19,7 @@ class ShardDataLayer : public DataLayer {
   ~ShardDataLayer();
 
   void Setup(const LayerProto& proto, int npartitions) override;
-  void ComputeFeature(Phase phase, Metric *perf) override;
+  void ComputeFeature(int flag, Metric *perf) override;
 
  private:
   DataShard* shard_;
@@ -30,14 +30,14 @@ class ShardDataLayer : public DataLayer {
 class LabelLayer : public ParserLayer {
  public:
   void Setup(const LayerProto& proto, int npartitions) override;
-  void ParseRecords(Phase phase, const std::vector<Record>& records,
+  void ParseRecords(int flag, const std::vector<Record>& records,
                     Blob<float>* blob) override;
 };
 
 class MnistLayer : public ParserLayer {
  public:
   void Setup(const LayerProto& proto, int npartitions) override;
-  void ParseRecords(Phase phase, const std::vector<Record>& records,
+  void ParseRecords(int flag, const std::vector<Record>& records,
                     Blob<float>* blob) override;
 
  protected:
@@ -54,7 +54,7 @@ class MnistLayer : public ParserLayer {
 class RGBImageLayer : public ParserLayer {
  public:
   void Setup(const LayerProto& proto, int npartitions) override;
-  void ParseRecords(Phase phase, const std::vector<Record>& records,
+  void ParseRecords(int flag, const std::vector<Record>& records,
                     Blob<float>* blob) override;
 
  private:
@@ -74,8 +74,8 @@ class ConvolutionLayer : public NeuronLayer {
   ~ConvolutionLayer();
 
   void Setup(const LayerProto& proto, int npartitions) override;
-  void ComputeFeature(int flag, Metric *perf) override;
-  void ComputeGradient(int flag) override;
+  void ComputeFeature(int flag, Metric* perf) override;
+  void ComputeGradient(int flag, Metric* perf) override;
   const std::vector<Param*> GetParams() const override {
     std::vector<Param*> params{weight_, bias_};
     return params;
@@ -112,13 +112,10 @@ class DropoutLayer : public NeuronLayer {
  */
 class RBMVisLayer: public RBMLayer {
  public:
-  using Layer::ComputeFeature;
-  using Layer::ComputeGradient;
-
   ~RBMVisLayer();
   void Setup(const LayerProto& proto, int npartitions) override;
-  void ComputeFeature(int flag, Metric *perf) override;
-  void ComputeGradient(int flag) override;
+  void ComputeFeature(int flag, Metric* perf) override;
+  void ComputeGradient(int flag, Metric* perf) override;
   Blob<float>* Sample(int flat) override;
 
  private:
@@ -136,8 +133,8 @@ class LRNLayer : public NeuronLayer {
  * b_i, the neuron after normalization, N is the total num of kernels
  */
   void Setup(const LayerProto& proto, int npartitions) override;
-  void ComputeFeature(Phase phase, Metric *perf) override;
-  void ComputeGradient(Phase phase, Metric* perf) override;
+  void ComputeFeature(int flag, Metric *perf) override;
+  void ComputeGradient(int flag, Metric* perf) override;
 
  protected:
   //! shape of the bottom layer feature
@@ -152,8 +149,8 @@ class LRNLayer : public NeuronLayer {
 class PoolingLayer : public NeuronLayer {
  public:
   void Setup(const LayerProto& proto, int npartitions) override;
-  void ComputeFeature(Phase phase, Metric *perf) override;
-  void ComputeGradient(Phase phase, Metric* perf) override;
+  void ComputeFeature(int flag, Metric *perf) override;
+  void ComputeGradient(int flag, Metric* perf) override;
 
  protected:
   int kernel_, pad_, stride_;
@@ -164,8 +161,26 @@ class PoolingLayer : public NeuronLayer {
 class ReLULayer : public NeuronLayer {
  public:
   void Setup(const LayerProto& proto, int npartitions) override;
-  void ComputeFeature(Phase phase, Metric *perf) override;
-  void ComputeGradient(Phase phase, Metric* perf) override;
+  void ComputeFeature(int flag, Metric *perf) override;
+  void ComputeGradient(int flag, Metric* perf) override;
+};
+
+class InnerProductLayer : public NeuronLayer {
+ public:
+  ~InnerProductLayer();
+  void Setup(const LayerProto& proto, int npartitions) override;
+  void ComputeFeature(int flag, Metric* perf) override;
+  void ComputeGradient(int flag, Metric* perf) override;
+  const std::vector<Param*> GetParams() const override {
+    std::vector<Param*> params{weight_, bias_};
+    return params;
+  }
+
+ private:
+  int batchsize_;
+  int vdim_, hdim_;
+  bool transpose_;
+  Param *weight_, *bias_;
 };
 
 /**
@@ -174,70 +189,33 @@ class ReLULayer : public NeuronLayer {
 class RBMHidLayer: public RBMLayer {
  public:
   ~RBMHidLayer();
-
-  ~RBMHidLayer();
   void Setup(const LayerProto& proto, int npartitions) override;
   void ComputeFeature(int flag, Metric* perf) override;
   void ComputeGradient(int flag, Metric* perf) override;
   Blob<float>* Sample(int flat) override;
+
  private:
   // whether use gaussian sampling
   bool gaussian_;
   RBMLayer *vis_layer_;
 };
-
 /**
-  * RBM visible layer
-  */
-class RBMVisLayer : public NeuronLayer {
- public:
-  ~RBMVisLayer();
-
-  void Setup(const LayerProto& proto, int npartitions) override;
-  void ComputeFeature(int flag, Metric* perf) override;
-  void ComputeGradient(int flag, Metric* perf) override;
-
-  ConnectionType src_neuron_connection(int k) const override {
-    // CHECK_LT(k, srclayers_.size());
-    return kOneToAll;
-  }
-  const Blob<float>& data(const Layer* from, Phase phase) const override {
-    return (phase == kPositive) ? data_ : vis_sample_;
-  }
-  const std::vector<Param*> GetParams() const override {
-    std::vector<Param*> params{weight_, bias_};
-    return params;
-  }
-
- private:
-  //! dimension of the hidden layer
-  int hdim_;
-  //! dimension of the visible layer
-  int vdim_;
-  int batchsize_;
-  bool transpose_;
-  Param* weight_, *bias_;
-  // data to store sampling result
-  Blob<float> vis_sample_;
-  // in order to implement Persistent Contrastive Divergence,
-};
-
-/**
- * This layer apply Tan function to neuron activations.
- * f(x)=A tanh(Bx)
- * f'(x)=B/A (A*A-f(x)*f(x))
+ * This layer apply scaled Tan function to neuron activations.
+ * f(x)=1.7159047  tanh(0.66666667 x)
  */
-class TanhLayer : public NeuronLayer {
+class STanhLayer : public NeuronLayer {
  public:
   void Setup(const LayerProto& proto, int npartitions) override;
-  void ComputeFeature(Phase phase, Metric *perf) override;
-  void ComputeGradient(Phase phase, Metric* perf) override;
-
- private:
-  float outer_scale_, inner_scale_;
+  void ComputeFeature(int flag, Metric *perf) override;
+  void ComputeGradient(int flag, Metric* perf) override;
 };
 
 /********** Derived from LossLayer **********/
+class EuclideanLossLayer : public LossLayer {
+ public:
+  void ComputeFeature(int flag, Metric* perf) override;
+  void ComputeGradient(int flag, Metric* perf) override;
+};
 
 class SoftmaxLossLayer : public LossLayer {
   /*
@@ -289,14 +267,14 @@ class BridgeDstLayer : public BridgeLayer {
  */
 class BridgeSrcLayer : public BridgeLayer {
  public:
-  void ComputeFeature(Phase phase, Metric* perf) override {}
-  void ComputeGradient(Phase phase, Metric* perf) override {
+  void ComputeFeature(int flag, Metric* perf) override {}
+  void ComputeGradient(int flag, Metric* perf) override {
     ready_ = false;
   }
-  const Blob<float>& data(const Layer* from, Phase phase) const override {
+  const Blob<float>& data(const Layer* from) const override {
     return srclayers_[0]->data(this);
   }
-  Blob<float>* mutable_data(const Layer* from, Phase phase) override {
+  Blob<float>* mutable_data(const Layer* from) override {
     return srclayers_[0]->mutable_data(this);
   }
   const Blob<float>& grad(const Layer* from) const override {
@@ -318,8 +296,8 @@ class BridgeSrcLayer : public BridgeLayer {
 class ConcateLayer : public ConnectionLayer {
  public:
   void Setup(const LayerProto& proto, int npartitions) override;
-  void ComputeFeature(Phase phase, Metric* perf) override;
-  void ComputeGradient(Phase phase, Metric* perf) override;
+  void ComputeFeature(int flag, Metric* perf) override;
+  void ComputeGradient(int flag, Metric* perf) override;
 };
 
 /**
@@ -329,6 +307,7 @@ class SliceLayer : public ConnectionLayer {
  public:
   void Setup(const LayerProto& proto, int npartitions) override;
   void ComputeFeature(int flag, Metric *perf) override;
+  void ComputeGradient(int flag, Metric* perf) override;
 
  private:
   std::vector<Blob<float>> datavec_;

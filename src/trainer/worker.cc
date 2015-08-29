@@ -148,7 +148,7 @@ void Worker::Run() {
   ConnectStub(grp_id_, id_, dealer_, kWorkerParam);
   for (auto layer : train_net_->layers()) {
     if (layer->partition_id() == id_) {
-      if (layer->is_bridgelayer()) {
+      if (layer->is_bridgesrclayer() || layer->is_bridgesrclayer()) {
         layer_dealer_ = new Dealer(2*thread_id_+1);
         ConnectStub(grp_id_, id_, layer_dealer_, kWorkerLayer);
         break;
@@ -259,7 +259,6 @@ void Worker::ReceiveBlobs(
     CHECK_EQ(AddrGrp(msg->src()), grp_id_);
     string name(static_cast<char*>(msg->FrameData()), msg->FrameSize());
     auto receive_layer = net->name2layer(name);
-    CHECK(receive_layer->is_bridgelayer());
     auto data = receive_layer->mutable_data(nullptr);
     msg->NextFrame();
     memcpy(data->mutable_cpu_data(), msg->FrameData(), msg->FrameSize());

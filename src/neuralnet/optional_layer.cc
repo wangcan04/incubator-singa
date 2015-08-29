@@ -45,7 +45,7 @@ void LMDBDataLayer::OpenLMDB(const std::string& path) {
            MDB_SUCCESS) << "mdb_cursor_get failed";
 }
 
-void LMDBDataLayer::ComputeFeature(Phase phase, Metric* perf) {
+void LMDBDataLayer::ComputeFeature(int flag, Metric* perf) {
   if (mdb_cursor_ == nullptr)
     OpenLMDB(layer_proto_.lmdbdata_conf().path());
   if (random_skip_) {
