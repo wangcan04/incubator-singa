@@ -3,8 +3,8 @@
 #include "mshadow/tensor.h"
 #include "mshadow/cxxnet_op.h"
 
+namespace singa {
 using namespace mshadow;
-using namespace singa;
 using mshadow::cpu;
 using mshadow::Shape1;
 using mshadow::Shape2;
@@ -33,7 +33,7 @@ void HiddenLayer::Setup(const LayerProto& proto, int npartitions) {
   const auto& src = srclayers_[0]->data(this);
   batchsize_ = src.shape()[0];
   vdim_ = src.count() / batchsize_;
-  hdim_ = layer_proto_.innerproduct_conf().num_output();
+  hdim_ = layer_proto_.GetExtension(hidden_conf).num_output();
   data_.Reshape(vector<int>{batchsize_, hdim_});
   grad_.ReshapeLike(data_);
   weight_ = Param::Create(proto.param(0));
@@ -68,4 +68,5 @@ void HiddenLayer::ComputeGradient(int flag, Metric* perf) {
     auto gsrc = NewTensor2(srclayers_[0]->mutable_grad(this));
     gsrc = dot(grad, weight);
   }
+}
 }

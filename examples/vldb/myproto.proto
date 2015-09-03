@@ -1,5 +1,5 @@
 package singa;
-import "proto/job.proto";
+import "job.proto";
 
 message HiddenProto {
   required int32 num_output = 1;
@@ -7,5 +7,5 @@ message HiddenProto {
 }
 
 extend LayerProto {
-  optional HiddenProto hidden_conf = 101;
+  optional HiddenProto hidden_conf = 102;
 }

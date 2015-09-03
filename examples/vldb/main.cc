@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
   bool resume = (resume_pos != -1);
 
   //  users can register new subclasses of layer, updater, etc.
-  driver.RegisterLayer<HiddenLayer, std::string>("kHidden");
+  driver.RegisterLayer<singa::HiddenLayer, std::string>("kHidden");
 
   //  get the job conf, and custmize it if need
   singa::JobProto jobConf = driver.job_conf();

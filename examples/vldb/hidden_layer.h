@@ -1,14 +1,15 @@
 #include "neuralnet/layer.h"
 #include "myproto.pb.h"
 
-class HiddenLayer : public singa::NeuronLayer {
+namespace singa {
+class HiddenLayer : public NeuronLayer {
  public:
   ~HiddenLayer();
-  void Setup(const singa::LayerProto& proto, int npartitions) override;
-  void ComputeFeature(int flag, singa::Metric* perf) override;
-  void ComputeGradient(int flag, singa::Metric* perf) override;
-  const std::vector<singa::Param*> GetParams() const override {
-    std::vector<singa::Param*> params{weight_, bias_};
+  void Setup(const LayerProto& proto, int npartitions) override;
+  void ComputeFeature(int flag, Metric* perf) override;
+  void ComputeGradient(int flag, Metric* perf) override;
+  const std::vector<Param*> GetParams() const override {
+    std::vector<Param*> params{weight_, bias_};
     return params;
   }
 
@@ -16,5 +17,6 @@ class HiddenLayer : public singa::NeuronLayer {
   int batchsize_;
   int vdim_, hdim_;
   bool transpose_;
-  singa::Param *weight_, *bias_;
+  Param *weight_, *bias_;
 };
+}
