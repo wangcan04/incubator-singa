@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <google/protobuf/text_format.h>
 #include "proto/job.pb.h"
 #include "proto/singa.pb.h"
 #include "utils/cluster_rt.h"
