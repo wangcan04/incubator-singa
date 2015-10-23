@@ -58,15 +58,13 @@ bool RecordInputLayer::Parse(int k, int flag, const string& key,
   } else if (image.pixel().size()) {
     CHECK_EQ(size, image.pixel().size());
     float* ptr = data_.mutable_cpu_data() + k * size;
-    string pixel = image.pixel();
+    const string& pixel = image.pixel();
     for (int i = 0; i < size; i++)
       ptr[i] =  static_cast<float>(static_cast<uint8_t>(pixel[i]));
   } else {
     LOG(ERROR) << "not pixel nor pixel";
   }
-  if ((flag & kDeploy) == 0) {  // deploy mode does not have label
-    aux_data_.at(k) = image.label();
-  }
+  aux_data_.at(k) = image.label();
   return true;
 }
 
