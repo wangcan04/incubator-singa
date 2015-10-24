@@ -31,7 +31,9 @@ void DropoutLayer::Setup(const LayerProto& conf,
     const vector<Layer*>& srclayers) {
   Layer::Setup(conf, srclayers);
   data_.ReshapeLike(srclayers[0]->data(this));
-  grad_.ReshapeLike(*srclayers[0]->mutable_grad(this));
+  data_.ShareData(srclayers[0]->data(this));
+  grad_.ReshapeLike(srclayers[0]->grad(this));
+  grad_.ShareData(srclayers[0]->grad(this));
   mask_.Reshape(srclayers[0]->data(this).shape());
   pdrop_ = conf.dropout_conf().dropout_ratio();
 }

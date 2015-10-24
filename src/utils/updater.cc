@@ -115,8 +115,8 @@ void SGDUpdater::Update(int step, Param* param, float grad_scale) {
     history = history * momentum_ - lr * grad;
     data += history;
   } else {
-    grad *= -lr;
-    data += grad;
+    // grad *= -lr;
+    data -= lr * grad;
   }
 }
 

@@ -22,6 +22,7 @@
 #include "singa/io/store.h"
 #include "singa/io/kvfile_store.h"
 #include "singa/io/textfile_store.h"
+#include "singa/io/lmdb_store.h"
 
 namespace singa { namespace io {
 Store* CreateStore(const std::string& backend) {
@@ -32,11 +33,9 @@ Store* CreateStore(const std::string& backend) {
     store = new KVFileStore();
   }
 
-#ifdef USE_LMDB
   if (backend == "lmdb") {
     return new LMDBStore();
   }
-#endif
 
 #ifdef USE_OPENCV
   if (backend == "imagefolder") {

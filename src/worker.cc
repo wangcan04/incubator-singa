@@ -25,6 +25,7 @@
 #include <chrono>
 #include <thread>
 #include <typeinfo>
+#include <sstream>
 #include "singa/utils/cluster.h"
 #include "singa/utils/factory.h"
 #include "singa/utils/singleton.h"
@@ -169,7 +170,7 @@ void Worker::Run() {
     }
     TrainOneBatch(step_, train_net_);
     if (DisplayNow(step_) && grp_id_ == 0 && id_ == 0)
-      Display(kTrain, "Train @ step " + std::to_string(step_), train_net_);
+      Display(kForward|kTrain|kBackward, "Train @ step " + std::to_string(step_), train_net_);
     step_++;
   }
 
@@ -264,19 +265,21 @@ int Worker::Collect(int step, Param* param) {
 }
 
 void Worker::Display(int flag, const std::string& prefix, NeuralNet* net) {
+  std::stringstream ss;
   for (auto layer : net->layers()) {
     if (layer->partition_id() == id_) {
       const string& disp = layer->ToString(false, flag);
       if (disp.length())
-        LOG(ERROR) << prefix << "  " << disp;
+        ss << disp;
       if (job_conf_.debug()) {
         const string& info = layer->ToString(true, flag);
         if (info.length()) {
-          LOG(INFO) <<  prefix << info;
+          ss << info;
         }
       }
     }
   }
+  LOG(ERROR) << prefix << '\n' << ss.str();
 }
 
 void Worker::ReceiveBlobs(bool data, bool grad, BridgeLayer* layer,

@@ -69,8 +69,8 @@ void create_data(const string& input_folder, const string& output_folder) {
   for (int i = 0; i < kCIFARImageNBytes; i++)
     mean.add_data(0.f);
 
-  auto store = singa::io::CreateStore("kvfile");
-  CHECK(store->Open(output_folder + "/train_data.bin", singa::io::kCreate));
+  auto store = singa::io::CreateStore("lmdb"); //kvfile
+  CHECK(store->Open(output_folder + "/train_lmdb", singa::io::kCreate));
   LOG(INFO) << "Preparing training data";
   int count = 0;
   for (int fileid = 0; fileid < kCIFARTrainBatches; ++fileid) {
@@ -97,7 +97,7 @@ void create_data(const string& input_folder, const string& output_folder) {
   store->Close();
 
   LOG(INFO) << "Create image mean";
-  store->Open(output_folder + "/image_mean.bin", singa::io::kCreate);
+  store->Open(output_folder + "/mean_lmdb", singa::io::kCreate);
   for (int i = 0; i < kCIFARImageNBytes; i++)
     mean.set_data(i, mean.data(i) / count);
   mean.SerializeToString(&rec_buf);
@@ -106,7 +106,7 @@ void create_data(const string& input_folder, const string& output_folder) {
   store->Close();
 
   LOG(INFO) << "Create test data";
-  store->Open(output_folder + "/test_data.bin", singa::io::kCreate);
+  store->Open(output_folder + "/test_lmdb", singa::io::kCreate);
   std::ifstream data_file((input_folder + "/test_batch.bin").c_str(),
       std::ios::in | std::ios::binary);
   CHECK(data_file.is_open()) << "Unable to open test file.";

@@ -62,6 +62,7 @@ SINGA_SRCS := src/driver.cc \
               src/io/kvfile.cc \
               src/io/kvfile_store.cc \
               src/io/textfile_store.cc \
+              src/io/lmdb_store.cc \
               src/io/store.cc \
               src/utils/cluster.cc \
               src/utils/cluster_rt.cc \
