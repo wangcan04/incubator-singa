@@ -55,13 +55,13 @@ void ImagePreprocessLayer::ComputeFeature(int flag,
   for (int k = 0; k < batchsize; k++) {
     int h_offset = 0, w_offset = 0;
     if (cropsize_> 0 && ((flag & kTrain) == kTrain)) {
-      h_offset = rand() % (srcdata.shape()[1] - cropsize_);
-      w_offset = rand() % (srcdata.shape()[2] - cropsize_);
+      h_offset = rand() % (srcdata.shape()[2] - cropsize_);
+      w_offset = rand() % (srcdata.shape()[3] - cropsize_);
     }
     bool do_mirror = mirror_ && rand() % 2 && ((flag & kTrain) == kTrain);
     ImageTransform(srcdptr + k * srcimage_size, nullptr, do_mirror, cropsize_,
         cropsize_, h_offset, w_offset, srcdata.shape()[1], height, width,
-        scale_, dptr + image_size);
+        scale_, dptr + k * image_size);
   }
 }
 

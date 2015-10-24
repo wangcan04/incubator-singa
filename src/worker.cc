@@ -32,6 +32,11 @@
 
 namespace singa {
 
+using ms = std::chrono::microseconds;
+using get_time = std::chrono::steady_clock;
+const float kClicks = 1000.f;
+//using duration = std::chrono::duration<int, std::micro>;
+
 using std::string;
 
 Worker* Worker::Create(const AlgProto& conf) {
@@ -152,6 +157,11 @@ void Worker::Run() {
 
   step_ = job_conf_.step();
   InitNetParams(job_conf_, train_net_);
+  fp_time_.resize(train_net_->layers().size());
+  bp_time_.resize(train_net_->layers().size());
+
+  int nsteps = 0;
+  auto start_tick = get_time::now();
   while (!StopNow(step_)) {
     if (ValidateNow(step_) && val_net_ != nullptr) {
       CollectAll(step_, val_net_);
@@ -172,8 +182,22 @@ void Worker::Run() {
     if (DisplayNow(step_) && grp_id_ == 0 && id_ == 0)
       Display(kForward|kTrain|kBackward, "Train @ step " + std::to_string(step_), train_net_);
     step_++;
+    nsteps++;
   }
+  LOG(ERROR) << "Time per iteration "
+      << std::chrono::duration_cast<ms>(get_time::now() - start_tick).count() / (kClicks * nsteps) << " ms";
 
+  auto fp = fp_time_.begin();
+  auto bp = bp_time_.rbegin();
+  auto fplayer = train_net_->layers().begin();
+  auto bplayer = train_net_->layers().begin();
+  for (unsigned i = 0; i < fp_time_.size(); i++) {
+    LOG(ERROR) << (*fplayer)->name() << " forward: " << (*fp) / (kClicks * nsteps) << " ms";
+    LOG(ERROR) << (*bplayer)->name() << " backward: " << (*bp) / (kClicks * nsteps) << " ms";
+    fplayer++; bplayer++;
+    fp ++;
+    bp ++;
+  }
   // save the model
   if (grp_id_ == 0)
     Checkpoint(step_, Cluster::Get()->checkpoint_folder(), train_net_);
@@ -326,6 +350,7 @@ void BPWorker::TestOneBatch(int step, Phase phase, NeuralNet* net) {
 }
 
 void BPWorker::Forward(int step, Phase phase, NeuralNet* net) {
+  auto it_time = fp_time_.begin();
   for (auto& layer : net->layers()) {
     if (layer->partition_id() == id_) {
       // TODO(wangwei): enable this for model partition
@@ -338,7 +363,11 @@ void BPWorker::Forward(int step, Phase phase, NeuralNet* net) {
           Collect(step, p);
         }
       }
+      auto start = get_time::now();
       layer->ComputeFeature(phase | kForward, net->srclayers(layer));
+      auto diff = get_time::now() - start;
+      *it_time += std::chrono::duration_cast<ms>(diff).count();
+      it_time++;
       // TODO(wangwei): enable this for model partition
       // send data to other workers
       // if (typeid(*layer) == typeid(BridgeSrcLayer))
@@ -348,6 +377,7 @@ void BPWorker::Forward(int step, Phase phase, NeuralNet* net) {
 }
 
 void BPWorker::Backward(int step, NeuralNet* net) {
+  auto it_time = bp_time_.begin();
   auto& layers = net->layers();
   for (auto it = layers.rbegin(); it != layers.rend(); it++) {
     Layer* layer = *it;
@@ -356,7 +386,11 @@ void BPWorker::Backward(int step, NeuralNet* net) {
       // send data to other workers
       // if (typeid(layer) == typeid(BridgeSrcLayer))
       //   ReceiveBlobs(false, true, layer, net);
+      auto start = get_time::now();
       layer->ComputeGradient(kTrain | kBackward, net->srclayers(layer));
+      auto diff = get_time::now() - start;
+      *it_time += std::chrono::duration_cast<ms>(diff).count();
+      it_time++;
       for (Param* p : layer->GetParams())
         Update(step, p);
       // TODO(wangwei): enable this for model partition

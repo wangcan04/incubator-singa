@@ -348,8 +348,11 @@ void NeuralNet::CreateNetFromGraph(Graph* graph, int npartitions) {
   for (Node* node : graph->nodes()) {
     auto layer = name2layer(node->name);
     src_map_[layer] = vector<Layer*>{};
-    for (Node* src : node->srcnodes)
+    LOG(ERROR) << node->name;
+    for (Node* src : node->srcnodes) {
       src_map_[layer].push_back(name2layer(src->name));
+      LOG(ERROR) << '\t' << src->name;
+    }
   }
 
   // setup layers

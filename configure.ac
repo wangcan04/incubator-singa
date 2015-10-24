@@ -84,7 +84,7 @@ AM_CONDITIONAL(DEBUG, test "$enable_debug" = yes)
 if test x"$enable_debug" != x"no"; then
 	DEBUG='-g'
 else
-	DEBUG='-O2'
+	DEBUG='-O3'
 fi
 AC_SUBST([DEBUG])
 

@@ -286,6 +286,7 @@ class Worker {
   NeuralNet* val_net_ = nullptr;
   Dealer* layer_dealer_ = nullptr;
   Dealer* dealer_ = nullptr;
+  std::vector<float> fp_time_, bp_time_;
 };
 
 class BPWorker: public Worker {
