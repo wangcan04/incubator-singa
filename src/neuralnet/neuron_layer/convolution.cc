@@ -120,18 +120,55 @@ void ConvolutionLayer::ComputeGradient(int flag,
 }
 
 /******************* Implementation for CConvolutionLayer *********/
+void CConvolutionLayer::Setup(const LayerProto& conf,
+    const vector<Layer*>& srclayers) {
+  CHECK_EQ(srclayers.size(), 1);
+  Layer::Setup(conf, srclayers);
+  ConvolutionProto conv_conf = conf.convolution_conf();
+  kernel_ = conv_conf.kernel();
+  CHECK_GT(kernel_, 0) << "Filter size cannot be zero.";
+  pad_ = conv_conf.pad();
+  stride_ = conv_conf.stride();
+  num_filters_ = conv_conf.num_filters();
+  if (partition_dim() > 0)
+    num_filters_ /= srclayers.at(0)->num_partitions();
+  const vector<int>& srcshape = srclayers[0]->data(this).shape();
+  int dim = srcshape.size();
+  CHECK_GT(dim, 2);
+  width_ = srcshape[dim - 1];
+  height_ = srcshape[dim - 2];
+  if (dim > 3)
+    channels_ = srcshape[dim - 3];
+  else if (dim > 2)
+    channels_ = 1;
+  batchsize_ = srcshape[0];
+  conv_height_ = (height_ + 2 * pad_ - kernel_) / stride_ + 1;
+  conv_width_ = (width_ + 2 * pad_ - kernel_) / stride_ + 1;
+  col_height_ = channels_ * kernel_ * kernel_;
+  col_width_ = conv_height_ * conv_width_;
+  vector<int> shape{batchsize_, num_filters_, conv_height_, conv_width_};
+  data_.Reshape(shape);
+  grad_.Reshape(shape);
+  col_data_.Reshape(vector<int>{batchsize_, col_height_, col_width_});
+  col_grad_.Reshape(vector<int>{col_height_, col_width_});
+  weight_ = Param::Create(conf.param(0));
+  bias_ = Param::Create(conf.param(1));
+  weight_->Setup(vector<int>{num_filters_, col_height_});
+  bias_->Setup(vector<int>{num_filters_});
+}
+
 void CConvolutionLayer::ComputeFeature(int flag,
     const vector<Layer*>& srclayers) {
   auto src = Tensor4(srclayers[0]->mutable_data(this));
   auto data = Tensor3(&data_);
-  auto col = Tensor2(&col_data_);
+  auto col = Tensor3(&col_data_);
   auto weight = Tensor2(weight_->mutable_data());
   auto bias = Tensor1(bias_->mutable_data());
 
   for (int n = 0; n < batchsize_; n++) {
     Im2col(src[n].dptr, channels_, height_, width_,
-        kernel_, kernel_, pad_, pad_, stride_, stride_, col.dptr);
-    data[n] = dot(weight, col);
+        kernel_, kernel_, pad_, pad_, stride_, stride_, col[n].dptr);
+    data[n] = dot(weight, col[n]);
   }
   data += expr::broadcast<1>(bias, data.shape);
 }
@@ -139,7 +176,7 @@ void CConvolutionLayer::ComputeFeature(int flag,
 void CConvolutionLayer::ComputeGradient(int flag,
     const vector<Layer*>& srclayers) {
   auto src = Tensor4(srclayers[0]->mutable_data(this));
-  auto col = Tensor2(&col_data_);
+  auto col = Tensor3(&col_data_);
   auto weight = Tensor2(weight_->mutable_data());
 
   auto grad = Tensor3(&grad_);
@@ -153,13 +190,13 @@ void CConvolutionLayer::ComputeGradient(int flag,
     gsrc.dptr = gsrcblob->mutable_cpu_data();
   gbias = expr::sumall_except_dim<1>(grad);
   for (int n = 0; n < batchsize_; n++) {
-    Im2col(src[n].dptr, channels_, height_, width_,
-        kernel_, kernel_, pad_, pad_, stride_, stride_, col.dptr);
-    gweight += dot(grad[n], col.T());
+    // Im2col(src[n].dptr, channels_, height_, width_,
+    ///    kernel_, kernel_, pad_, pad_, stride_, stride_, col.dptr);
+    gweight += dot(grad[n], col[n].T());
     if (gsrcblob != nullptr) {
       gcol = dot(weight.T(), grad[n]);
-      Col2im(gcol.dptr, channels_, height_, width_,
-          kernel_, kernel_, pad_, pad_, stride_, stride_, gsrc[n].dptr);
+      Col2im(gcol[n].dptr, channels_, height_, width_,
+          kernel_, kernel_, pad_, pad_, stride_, stride_, gsrc.dptr);
     }
   }
 }

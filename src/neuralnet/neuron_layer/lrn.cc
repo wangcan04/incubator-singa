@@ -64,9 +64,12 @@ void LRNLayer::ComputeGradient(int flag, const vector<Layer*>& srclayers) {
   auto grad = Tensor4(&grad_);
   auto gsrc = Tensor4(srclayers[0]->mutable_grad(this));
 
-  gsrc = grad * expr::F<op::power>(norm, -beta_);
-  gsrc += (- 2.0f * beta_ * salpha) * expr::chpool<red::sum>(
-      grad * src * expr::F<op::power>(norm, -beta_ - 1.0f), lsize_)  * src;
+  gsrc = grad * F<op::power>(norm, -beta_ );
+  Tensor<cpu, 4> tmp(gsrc.shape_);
+  AllocSpace(&tmp);
+  tmp = gsrc * src / norm;
+  gsrc += ( - 2.0f * beta_ * salpha ) * chpool<red::sum>(tmp, lsize_ )  * src;
+  FreeSpace(&tmp);
 }
 
 }  // namespace singa
