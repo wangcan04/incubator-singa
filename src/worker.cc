@@ -30,8 +30,12 @@
 #include "singa/utils/singleton.h"
 #include "singa/utils/context.h"
 #include "singa/utils/math_blob.h"
+#include "singa/server.h"
 
 namespace singa {
+using ms = std::chrono::microseconds;
+using mms = std::chrono::milliseconds;
+using get_time = std::chrono::steady_clock;
 
 using std::string;
 
@@ -76,6 +80,8 @@ void Worker::Run() {
   step_ = job_conf_.step();
   InitSockets(train_net_);
   InitNetParams(job_conf_, train_net_);
+
+  auto start_tick = get_time::now();
   while (!StopNow(step_)) {
     if (ValidateNow(step_) && val_net_ != nullptr) {
       CollectAll(step_, train_net_);
@@ -99,6 +105,14 @@ void Worker::Run() {
     }
     step_++;
   }
+  LOG(ERROR) << "Time per iteration "
+        << std::chrono::duration_cast<ms>(get_time::now() - start_tick).count() / step_ << " ms";
+  LOG(ERROR) << "Time for to cpu "
+        << std::chrono::duration_cast<ms>(to_cpu_time).count() / step_ << " ms";
+  LOG(ERROR) << "Time for to gpu "
+        << std::chrono::duration_cast<ms>(to_gpu_time).count() / step_ << " ms";
+  LOG(ERROR) << "Time for upate "
+        << std::chrono::duration_cast<ms>(update_time).count() / step_ << " ms";
 
   // save the model
   if (grp_id_ == 0)

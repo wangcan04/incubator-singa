@@ -39,7 +39,12 @@
 #include "mshadow/tensor.h"
 #include "mshadow/cxxnet_op.h"
 
+#include <chrono>
+
 namespace singa {
+using ms = std::chrono::microseconds;
+extern ms to_gpu_time;
+extern ms to_cpu_time;
 
 // TODO(wangwei) use cudaMallocHost depending on Context::device.
 inline void MallocHost(void** ptr, size_t size) {

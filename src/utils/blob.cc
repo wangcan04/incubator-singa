@@ -53,6 +53,10 @@ private:\
 #endif  // CPU_ONLY
 
 namespace singa {
+using get_time = std::chrono::steady_clock;
+
+ms to_gpu_time;
+ms to_cpu_time;
 
 SyncedMemory::~SyncedMemory() {
   if (cpu_ptr_ && own_cpu_data_) {
@@ -108,6 +112,7 @@ void SyncedMemory::set_cpu_data(void* data) {
 }
 
 void SyncedMemory::to_cpu() {
+  auto start_tick = get_time::now();
   switch (head_) {
   case UNINITIALIZED:
     MallocHost(&cpu_ptr_, size_);
@@ -123,6 +128,7 @@ void SyncedMemory::to_cpu() {
     }
     CUDA_CHECK(cudaMemcpy(cpu_ptr_, gpu_ptr_, size_, cudaMemcpyDefault));
     head_ = SYNCED;
+    to_cpu_time += std::chrono::duration_cast<ms>(get_time::now() - start_tick);
 #else
     NO_GPU;
 #endif
@@ -135,6 +141,7 @@ void SyncedMemory::to_cpu() {
 
 void SyncedMemory::to_gpu() {
 #ifndef CPU_ONLY
+  auto start_tick = get_time::now();
   switch (head_) {
   case UNINITIALIZED:
     CUDA_CHECK(cudaMalloc(&gpu_ptr_, size_));
@@ -146,6 +153,7 @@ void SyncedMemory::to_gpu() {
       CUDA_CHECK(cudaMalloc(&gpu_ptr_, size_));
     }
     CUDA_CHECK(cudaMemcpy(gpu_ptr_, cpu_ptr_, size_, cudaMemcpyDefault));
+    to_gpu_time += std::chrono::duration_cast<ms>(get_time::now() - start_tick);
     head_ = SYNCED;
     break;
   case HEAD_AT_GPU:
