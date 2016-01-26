@@ -30,6 +30,7 @@
 #include "singa/proto/job.pb.h"
 #include "singa/neuralnet/connection_layer.h"
 #include "singa/neuralnet/neuron_layer.h"
+#include "singa/utils/updater.h"
 
 namespace singa {
 
@@ -278,6 +279,7 @@ class Worker {
   // bridge layer related
   Dealer* bridge_dealer_ = nullptr;
   std::unordered_map<std::string, Layer*> name2bridge_;
+  Updater* updater_;
 };
 
 class BPWorker: public Worker {

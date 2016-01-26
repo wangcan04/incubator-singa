@@ -58,9 +58,11 @@ void Worker::Setup(int grp_id, int id, const JobProto& conf,
   val_net_ = val_net;
   test_net_ = test_net;
   bridge_dealer_ = dealer_ = nullptr;
+  updater_ = Updater::Create(conf.updater());
 }
 
 Worker::~Worker() {
+  if (updater_) delete updater_;
   if (dealer_) delete dealer_;
   if (bridge_dealer_) delete bridge_dealer_;
 }
@@ -284,6 +286,8 @@ int Worker::Get(int step, Param* param) {
 }
 
 int Worker::Update(int step, Param* param) {
+  //updater_->Update(step, param, 1.0f);
+  return 1;
   param->set_last_version(param->version());
   if (dealer_ == nullptr) {
     LOG(WARNING) << "Null dealer in worker (" << grp_id_ << ", " << id_ << ")";
@@ -321,6 +325,7 @@ int Worker::CollectAll(int step, NeuralNet* net) {
 }
 
 int Worker::Collect(int step, Param* param) {
+  return 1;
   while (param->version() <= param->last_version()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(kCollectSleepTime));
     // LOG(ERROR) << "wait  "<< param->id() << " at " << step << " by " <<id_;
