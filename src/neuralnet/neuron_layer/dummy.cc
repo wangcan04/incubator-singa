@@ -48,6 +48,7 @@ void DummyLayer::Setup(const LayerProto& proto,
 }
 
 void DummyLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+  /*
   std::uniform_real_distribution<float> dis(0, 1);
   auto gen = Singleton<Context>::Instance()->rand_generator();
   if (input_) {
@@ -57,6 +58,7 @@ void DummyLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   }
   if (srclayers.size() > 0)
     Copy(srclayers[0]->data(this), &data_);
+    */
 }
 
 void DummyLayer::ComputeGradient(int flag, const vector<Layer*>& srclayers) {
