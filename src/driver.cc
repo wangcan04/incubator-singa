@@ -206,6 +206,13 @@ void Driver::Test(const JobProto& job_conf) {
   for (const auto& p : job_conf.checkpoint_path())
     paths.push_back(p);
   net->Load(paths);
+  auto context = Singleton<Context>::Instance();
+  // CHECK_LE(workers.size(), job_conf.gpu_size());
+  int device_id  = -1;
+  if (job_conf.gpu_size()) {
+    device_id = job_conf.gpu(0);
+  }
+  context->SetupDevice(std::this_thread::get_id(), device_id);
   worker->Test(job_conf.test_steps(), kTest,  net);
 }
 

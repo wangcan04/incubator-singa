@@ -36,7 +36,7 @@ namespace singa {
 using ms = std::chrono::microseconds;
 using mms = std::chrono::milliseconds;
 using get_time = std::chrono::steady_clock;
-
+ms fp_time, bp_time;
 using std::string;
 
 Worker* Worker::Create(const AlgProto& conf) {
@@ -115,6 +115,10 @@ void Worker::Run() {
         << std::chrono::duration_cast<ms>(to_gpu_time).count() / step_ << " ms";
   LOG(ERROR) << "Time for upate "
         << std::chrono::duration_cast<ms>(update_time).count() / step_ << " ms";
+  LOG(ERROR) << "Time for forward "
+        << std::chrono::duration_cast<ms>(fp_time).count() / step_ << " ms";
+  LOG(ERROR) << "Time for backward "
+        << std::chrono::duration_cast<ms>(bp_time).count() / step_ << " ms";
 
   // save the model
   if (grp_id_ == 0)
@@ -345,8 +349,12 @@ void Worker::Display(int flag, const std::string& prefix, NeuralNet* net) {
 
 /****************************BPWorker**********************************/
 void BPWorker::TrainOneBatch(int step, NeuralNet* net) {
+  auto start_tick = get_time::now();
   Forward(step, kTrain, net);
+  auto tick = get_time::now();
+  fp_time +=std::chrono::duration_cast<ms>(tick - start_tick);
   Backward(step, net);
+  bp_time +=std::chrono::duration_cast<ms>(get_time::now() - start_tick);
 }
 
 void BPWorker::TestOneBatch(int step, Phase phase, NeuralNet* net) {
