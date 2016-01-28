@@ -29,6 +29,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "singa/comm/socket.h"
+
 #ifdef USE_GPU
 #include "singa/utils/cuda_utils.h"
 
@@ -291,7 +293,7 @@ class Context {
   //!< cublas rand generator indexed by GPU device ID
   std::vector<curandGenerator_t> curand_generator_;
   //!< cuda stream for async copy indexed by GPU device ID
-  std::vector<cudaStram_t> copy_stream_;
+  std::vector<cudaStream_t> copy_stream_;
 
   //!< Dealer socket for sending msg to router
   Dealer* dealer_ = nullptr;

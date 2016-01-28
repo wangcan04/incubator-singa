@@ -32,6 +32,7 @@
 #include "singa/proto/singa.pb.h"
 #include "singa/utils/factory.h"
 #include "singa/utils/param.h"
+#include "singa/utils/updater.h"
 #include "singa/utils/singleton.h"
 #include "singa/server.h"
 #include "singa/worker.h"
@@ -45,6 +46,7 @@ class Stub {
    * Find an endpoint to bind.
    */
   void Setup();
+  void Setup(const JobProto& conf);
   /**
    * The Stub instance runs this function in the main thread to handle (e.g.,
    * forward) messages from workers and servers.
@@ -102,6 +104,7 @@ class Stub {
   Router *router_ = nullptr;
   std::string endpoint_;
   std::vector<int> slice2server_;
+  Updater* updater_;
 };
 
 }  // namespace singa

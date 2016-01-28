@@ -147,8 +147,8 @@ void Stub::Run(const vector<int>& slice2server,
             if (entry->num_update == 0) { // updated just now.
               for (auto *p : entry->shares) {
                 auto *worker = workers[p->worker_id()];
-                auto *event = new CopyEvent(p, worker, true);
-                event->param_version = entry->version();
+                CopyEvent event(p, worker, true);
+                event.param_version = entry->version;
                 worker->EnqueueEvent(event);
               }
             }

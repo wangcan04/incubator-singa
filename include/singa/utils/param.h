@@ -205,7 +205,7 @@ class Param {
   inline void set_last_version(int v) { last_version_ = v; }
 
   inline int worker_id() const { return worker_id_; }
-  inline int set_worker_id(int w) const { worker_id_ = w; }
+  inline void set_worker_id(int w) { worker_id_ = w; }
 
   /**
    * @return the sharing Param name which is configured by users in conf file.
@@ -346,7 +346,7 @@ class Param {
   int version_ = -1;
   //!< param version before last Update/Sync/Get request, set from version_
   int last_version_ = -1;
-  int worker_id = -1;
+  int worker_id_ = -1;
   //!< the global ID of the first slice
   int slice_start_ = 0;
   //!< total num of slices for this Parm obj

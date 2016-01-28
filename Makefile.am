@@ -121,7 +121,6 @@ SINGA_SRCS := src/driver.cc \
               src/utils/updater.cc \
               src/utils/blob.cc \
               src/utils/image_transform.cc
-              src/utils/event.cc
 
 SINGA_HDRS := include/singa.h \
 			  include/singa/utils/math_blob.h \

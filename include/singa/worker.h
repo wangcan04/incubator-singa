@@ -32,6 +32,7 @@
 #include "singa/neuralnet/neuron_layer.h"
 #include "singa/utils/updater.h"
 #include "singa/utils/event.h"
+#include "singa/utils/sfqueue.h"
 
 namespace singa {
 
@@ -64,6 +65,8 @@ class Worker {
    * @return a pointer to the instance of the Worker subclass.
    */
   static Worker* Create(const AlgProto& conf);
+  static void CUDART_CB Dev2Host(cudaStream_t stream, cudaError_t status, void *userData);
+  static void CUDART_CB Host2Dev(cudaStream_t stream, cudaError_t status, void *userData);
   virtual ~Worker();
   /**
    * @param[in] grp_id global worker group ID
@@ -209,7 +212,7 @@ class Worker {
   /**
    * Insert copy event (from host to dev) into the copy queue by other threads.
    */
-  void EnqueueEvent(CopyEvent* event) {
+  void EnqueueEvent(CopyEvent event) {
     copy_queue_.push(event);
   }
 
@@ -285,6 +288,8 @@ class Worker {
    */
   inline int id() const { return id_; }
 
+  inline int step() const { return step_; }
+
  protected:
   int grp_id_ = -1, id_ = -1;
   int step_ = 0;
@@ -297,7 +302,8 @@ class Worker {
   Dealer* bridge_dealer_ = nullptr;
   std::unordered_map<std::string, Layer*> name2bridge_;
   Updater* updater_;
-  SafeQueue<Event*> copy_queue_;
+  SafeQueue<CopyEvent> copy_queue_;
+  cudaStream_t copy_stream_;
 };
 
 class BPWorker: public Worker {

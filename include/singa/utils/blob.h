@@ -35,11 +35,15 @@
 #include <glog/logging.h>
 #include <memory>
 #include <vector>
+#include <chrono>
+
+#include <cuda_runtime.h>
+#include "singa/utils/cuda_utils.h"
+#include "singa/utils/event.h"
 #include "singa/proto/common.pb.h"
 #include "mshadow/tensor.h"
 #include "mshadow/cxxnet_op.h"
 
-#include <chrono>
 
 namespace singa {
 using ms = std::chrono::microseconds;
@@ -80,8 +84,10 @@ class SyncedMemory {
   void* mutable_gpu_data();
   void set_cpu_data(void* data);
   inline SyncedHead head() { return head_; }
-  void CopyToGPUAsync(cudaStream_t stream, CopyEvent* event);
-  void CopyToCPUAsync(cudaStream_t stream, CopyEvent* event);
+  void CopyToGPUAsync(cudaStream_t stream, cudaStreamCallback_t callback,
+      CopyEvent* event);
+  void CopyToCPUAsync(cudaStream_t stream, cudaStreamCallback_t callback,
+      CopyEvent* event);
 
   /**
    * manually sync the GPU and CPU by cudaMemcpyAsync and then set the head.
@@ -237,16 +243,18 @@ class Blob {
   /**
    *
    */
-  void CopyToGPUAsync(cudaStream_t stream, CopyEvent* event);
-  void CopyToCPUAsync(cudaStream_t stream, CopyEvent* event);
+  void CopyToGPUAsync(cudaStream_t stream, cudaStreamCallback_t callback,
+      CopyEvent* event);
+  void CopyToCPUAsync(cudaStream_t stream, cudaStreamCallback_t callback,
+      CopyEvent* event);
   void SyncHead() {
     data_->sync_head();
   }
   inline bool HeadAtGPU() const {
-    return data_->head() == HEAD_AT_GPU;
+    return data_->head() == SyncedMemory::HEAD_AT_GPU;
   }
   inline bool HeadAtCPU() const {
-    return data_->head() == HEAD_AT_CPU;
+    return data_->head() == SyncedMemory::HEAD_AT_CPU;
   }
   /**
    * @return the shape vector.

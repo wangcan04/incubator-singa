@@ -48,6 +48,25 @@ Worker* Worker::Create(const AlgProto& conf) {
     worker = factory->Create(conf.alg());
   return worker;
 }
+void CUDART_CB Worker::Dev2Host(cudaStream_t stream,
+    cudaError_t status, void *userData) {
+  auto event = static_cast<CopyEvent*>(userData);
+  CHECK(!event->host2dev);
+  auto param = event->param;
+  param->mutable_grad()->SyncHead();
+  auto dealer = Singleton<Context>::Instance()->driver_dealer();
+  Worker::SendUpdateMsg(param, event->worker, dealer);
+  delete event;
+}
+void CUDART_CB Worker::Host2Dev(cudaStream_t stream,
+    cudaError_t status, void *userData) {
+  auto event = static_cast<CopyEvent*>(userData);
+  CHECK(event->host2dev);
+  auto *param = event->param;
+  param->mutable_data()->SyncHead();
+  param->set_version(event->param_version);
+  delete event;
+}
 
 void Worker::Setup(int grp_id, int id, const JobProto& conf,
     NeuralNet* train_net, NeuralNet* val_net, NeuralNet* test_net) {
@@ -294,8 +313,8 @@ int Worker::Get(int step, Param* param) {
 int Worker::Update(int step, Param* param) {
   param->set_last_version(param->version());
   if (param->grad().HeadAtGPU()) {
-    param->mutable_grad()->CopyToCpuAsync(copy_stream_,
-        CopyEvent(param, this, false));
+    param->mutable_grad()->CopyToCPUAsync(copy_stream_, Worker::Dev2Host,
+        new CopyEvent(param, this, false));
     return 1;
   } else {
     // head of data Blob (SyncMem) to cpu, because the stub thread may use
@@ -315,7 +334,9 @@ int Worker::Update(int step, Param* param) {
     return 1;
   }
   SendUpdateMsg(param, this, dealer_);
+  return 1;
 }
+
 
 void Worker::SendUpdateMsg(Param* param, Worker* worker,
     Dealer* dealer) {
@@ -358,10 +379,11 @@ void Worker::Display(int flag, const std::string& prefix, NeuralNet* net) {
 }
 
 void Worker::CopyToGPUAsync() {
-  CopyEvent* event = nullptr;
-  while(copy_queue_.try_pop(event)) {
+  CopyEvent *event = new CopyEvent();
+  while(copy_queue_.try_pop(*event)) {
     // copy param values
-    event->param->mutable_data()->CopyToGPUAsync(copy_stream_, event);
+    event->param->mutable_data()->CopyToGPUAsync(copy_stream_, Worker::Host2Dev,
+        event);
     // TODO copy layer value/gradient
   }
 }
@@ -407,7 +429,7 @@ void BPWorker::Backward(int step, NeuralNet* net) {
   map<string, string> label;
   auto& layers = net->layers();
   for (auto it = layers.rbegin(); it != layers.rend(); it++) {
-    CheckCopyQueue();
+    CopyToGPUAsync();
     Layer* layer = *it;
     if (layer->partition_id() == id_) {
       layer->ComputeGradient(kTrain | kBackward, net->srclayers(layer));

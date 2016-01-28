@@ -165,15 +165,17 @@ void SyncedMemory::to_gpu() {
 #endif
 }
 
-void SyncedMemory::CopyToGPUAsync(cudaStream_t stream, CopyEvent* event) {
+void SyncedMemory::CopyToGPUAsync(cudaStream_t stream,
+    cudaStreamCallback_t callback, CopyEvent* event) {
   CUDA_CHECK(cudaMemcpyAsync(gpu_ptr_, cpu_ptr_, size_, cudaMemcpyHostToDevice,
         stream));
-  CUDA_CHECK(cudaStreamAddCallback(stream, Event::Host2Dev, event, 0));
+  CUDA_CHECK(cudaStreamAddCallback(stream, callback, event, 0));
 }
-void SyncedMemory::CopyToCPUAsync(cudaStream_t stream, CopyEvent* event) {
+void SyncedMemory::CopyToCPUAsync(cudaStream_t stream,
+    cudaStreamCallback_t callback, CopyEvent* event) {
   CUDA_CHECK(cudaMemcpyAsync(cpu_ptr_, gpu_ptr_, size_, cudaMemcpyDeviceToHost,
         stream));
-  CUDA_CHECK(cudaStreamAddCallback(stream, Event::Dev2Host, event, 0));
+  CUDA_CHECK(cudaStreamAddCallback(stream, callback, event, 0));
 }
 
 
@@ -263,12 +265,14 @@ void Blob<Dtype>::ShareData(Blob* other, bool cpu_only) {
 }
 
 template <typename Dtype>
-void CopyToGPUAsync(cudaStream_t stream, CopyEvent* event) {
-  data_->CopyToGPUAsync(stream, event);
+void Blob<Dtype>::CopyToGPUAsync(cudaStream_t stream,
+    cudaStreamCallback_t callback, CopyEvent* event) {
+  data_->CopyToGPUAsync(stream, callback, event);
 }
 template <typename Dtype>
-void CopyToCPUAsync(cudaStream_t stream, CopyEvent* event) {
-  data_->CopyToCPUAsync(stream, event);
+void Blob<Dtype>::CopyToCPUAsync(cudaStream_t stream,
+    cudaStreamCallback_t callback, CopyEvent* event) {
+  data_->CopyToCPUAsync(stream, callback, event);
 }
 
 /*
