@@ -57,15 +57,18 @@ void CUDART_CB Worker::Dev2Host(cudaStream_t stream,
   auto dealer = Singleton<Context>::Instance()->driver_dealer();
   Worker::SendUpdateMsg(param, event->worker, dealer);
   delete event;
+  // LOG(ERROR) << "callback d2h";
 }
 void CUDART_CB Worker::Host2Dev(cudaStream_t stream,
     cudaError_t status, void *userData) {
   auto event = static_cast<CopyEvent*>(userData);
   CHECK(event->host2dev);
   auto *param = event->param;
+  // LOG(ERROR) << "callback h2d, param " << param->id();
   param->mutable_data()->SyncHead();
   param->set_version(event->param_version);
   delete event;
+  // LOG(ERROR) << "callback h2d, param " << param->id();
 }
 
 void Worker::Setup(int grp_id, int id, const JobProto& conf,
@@ -87,6 +90,7 @@ Worker::~Worker() {
 }
 
 void Worker::Run() {
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   // setup gpu device
   auto context = Singleton<Context>::Instance();
   int device = context->device_id(std::this_thread::get_id());
@@ -94,15 +98,21 @@ void Worker::Run() {
     << " start on " << (device >= 0 ? "GPU " + std::to_string(device) : "CPU");
   if (device >= 0) {
     context->ActivateDevice(device);
-    copy_stream_ = context->copy_stream();
+    CHECK_EQ(cudaStreamCreateWithFlags(
+            &up_stream_, cudaStreamNonBlocking), cudaSuccess);
+     CHECK_EQ(cudaStreamCreateWithFlags(
+            &down_stream_, cudaStreamNonBlocking), cudaSuccess);
   }
 
   auto cluster = Cluster::Get();
   int svr_grp = grp_id_ / cluster->nworker_groups_per_server_group();
-  CHECK(cluster->runtime()->JoinSGroup(grp_id_, id_, svr_grp));
+  // CHECK(cluster->runtime()->JoinSGroup(grp_id_, id_, svr_grp));
   step_ = job_conf_.step();
+  // LOG(ERROR) << "worker initing sockets";
   InitSockets(train_net_);
+  // LOG(ERROR) << "worker init sockets";
   InitNetParams(job_conf_, train_net_);
+  // LOG(ERROR) << "worker bp";
 
   auto start_tick = get_time::now();
   while (!StopNow(step_)) {
@@ -313,7 +323,8 @@ int Worker::Get(int step, Param* param) {
 int Worker::Update(int step, Param* param) {
   param->set_last_version(param->version());
   if (param->grad().HeadAtGPU()) {
-    param->mutable_grad()->CopyToCPUAsync(copy_stream_, Worker::Dev2Host,
+    // LOG(ERROR) << "update param " << param->id();
+    param->mutable_grad()->CopyToCPUAsync(down_stream_, Worker::Dev2Host,
         new CopyEvent(param, this, false));
     return 1;
   } else {
@@ -360,9 +371,10 @@ int Worker::CollectAll(int step, NeuralNet* net) {
 }
 
 int Worker::Collect(int step, Param* param) {
-  return 1;
+  CopyToGPUAsync();
   while (param->version() <= param->last_version()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(kCollectSleepTime));
+    CopyToGPUAsync();
     // LOG(ERROR) << "wait  "<< param->id() << " at " << step << " by " <<id_;
   }
   return 1;
@@ -379,10 +391,15 @@ void Worker::Display(int flag, const std::string& prefix, NeuralNet* net) {
 }
 
 void Worker::CopyToGPUAsync() {
-  CopyEvent *event = new CopyEvent();
-  while(copy_queue_.try_pop(*event)) {
+  while(true) {
+    auto event = new CopyEvent();
+    if (!copy_queue_.try_pop(*event))
+      break;
+    CHECK(event->param != nullptr);
+    CHECK(event->param->data().count()>0);
+    // LOG(ERROR) << "dequeue param " << event->param->id(); // event->param->version()<< " " << event->param->size()<< " " << event->worker->step() << event->param_version;
     // copy param values
-    event->param->mutable_data()->CopyToGPUAsync(copy_stream_, Worker::Host2Dev,
+    event->param->mutable_data()->CopyToGPUAsync(up_stream_, Worker::Host2Dev,
         event);
     // TODO copy layer value/gradient
   }
@@ -390,11 +407,14 @@ void Worker::CopyToGPUAsync() {
 
 /****************************BPWorker**********************************/
 void BPWorker::TrainOneBatch(int step, NeuralNet* net) {
+  // LOG(ERROR) << "bp one batch";
   auto start_tick = get_time::now();
   Forward(step, kTrain, net);
+  // LOG(ERROR) << "fp end";
   auto tick = get_time::now();
   fp_time +=std::chrono::duration_cast<ms>(tick - start_tick);
   Backward(step, net);
+  // LOG(ERROR) << "bp end";
   bp_time +=std::chrono::duration_cast<ms>(get_time::now() - tick);
 }
 
@@ -405,6 +425,7 @@ void BPWorker::TestOneBatch(int step, Phase phase, NeuralNet* net) {
 void BPWorker::Forward(int step, Phase phase, NeuralNet* net) {
   map<string, string> label;
   for (auto& layer : net->layers()) {
+    CopyToGPUAsync();
     if (layer->partition_id() == id_) {
       if (phase == kTrain && layer->unroll_index() == 0) {
         // wait until param is updated

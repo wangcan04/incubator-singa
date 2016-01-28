@@ -303,7 +303,7 @@ class Worker {
   std::unordered_map<std::string, Layer*> name2bridge_;
   Updater* updater_;
   SafeQueue<CopyEvent> copy_queue_;
-  cudaStream_t copy_stream_;
+  cudaStream_t up_stream_, down_stream_;
 };
 
 class BPWorker: public Worker {

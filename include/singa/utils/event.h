@@ -10,8 +10,8 @@ class CopyEvent {
 
  Param* param = nullptr;
  Worker* worker = nullptr;
- int param_version = -1;
  bool host2dev;
+ int param_version = -1;
 };
 }
 #endif  // SINGA_UTILS_EVENT_H_

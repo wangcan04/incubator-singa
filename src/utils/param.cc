@@ -164,6 +164,10 @@ void Param::InitValues(int version) {
   ParamGenerator* gen = ParamGenerator::Create(proto_.init());
   gen->Fill(&data_);
   set_version(version);
+  data_.gpu_data();
+  data_.cpu_data();
+  grad_.gpu_data();
+  grad_.cpu_data();
 }
 
 void Param::ShareDataFrom(Param* other, bool cpu_only) {

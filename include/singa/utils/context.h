@@ -69,6 +69,10 @@ class Context {
           curandDestroyGenerator(curand_generator_[entry.second]);
           curand_generator_[entry.second] = nullptr;
         }
+        if (copy_stream_[entry.second] != nullptr) {
+          cudaStreamDestroy(copy_stream_[entry.second]);
+          copy_stream_[entry.second] = nullptr;
+        }
       }
     }
 #ifdef USE_CUDNN
@@ -94,6 +98,7 @@ class Context {
 #ifdef USE_GPU
       cublas_handle_.push_back(nullptr);
       curand_generator_.push_back(nullptr);
+      copy_stream_.push_back(nullptr);
 #ifdef USE_CUDNN
       cudnn_handle_.push_back(nullptr);
 #endif

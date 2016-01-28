@@ -115,6 +115,7 @@ void Stub::Run(const vector<int>& slice2server,
   auto shard = CreateParamShard(workers);
   std::map<int, Dealer*> inter_dealers;  // for sending msg to other procs
   std::queue<Msg*> msg_queue;
+  // LOG(ERROR) << "stub works";
   while (true) {
     Msg* msg = nullptr;
     if (msg_queue.empty()) {
@@ -145,10 +146,14 @@ void Stub::Run(const vector<int>& slice2server,
             for (auto update_msg : HandleUpdateRequest(entry, &msg))
               msg_queue.push(update_msg);
             if (entry->num_update == 0) { // updated just now.
+              CHECK_EQ(entry->shares.size(), 1);
               for (auto *p : entry->shares) {
                 auto *worker = workers[p->worker_id()];
+                CHECK_EQ(worker->id(), p->worker_id());
+                CHECK_EQ(paramid, p->id());
                 CopyEvent event(p, worker, true);
                 event.param_version = entry->version;
+                // LOG(ERROR) << "enqueue param " << p->id();
                 worker->EnqueueEvent(event);
               }
             }
@@ -277,10 +282,10 @@ const vector<Msg*> Stub::HandleUpdateRequest(ParamEntry *entry, Msg** msg) {
 
 const vector<Msg*> Stub::HandlePutRequest(ParamEntry* entry, Msg** msg) {
   vector<Msg*> ret;
-  int v = entry->shares[0]->version();
-  for (auto *p : entry->shares)
-    p->set_version(v);
   int version = (*msg)->trgt_version();
+  for (auto *p : entry->shares)
+    p->set_version(version);
+  entry->version = version;
   GenMsgs(kPut, version, entry, *msg, &ret);
   DeleteMsg(msg);
   return ret;

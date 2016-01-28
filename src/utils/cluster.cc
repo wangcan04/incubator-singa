@@ -44,7 +44,8 @@ Cluster* Cluster::Get() {
 }
 
 void Cluster::Register(int pid, const std::string& endpoint) {
-  procs_id_ = cluster_rt_->RegistProc(endpoint, pid);
+  //procs_id_ = cluster_rt_->RegistProc(endpoint, pid);
+  procs_id_ = 0;
   CHECK_GE(procs_id_, 0);
   CHECK_LT(procs_id_, nprocs());
   LOG(ERROR) << "proc #" << procs_id_ << " -> " << endpoint
@@ -81,8 +82,8 @@ void Cluster::Init(int job, const SingaProto& singaConf,
           (i * grp_size + j) / cluster_.nservers_per_procs() + offset;
     }
   }
-  cluster_rt_ = new ClusterRuntime(singa_.zookeeper_host(), job);
-  cluster_rt_->Init();
+  // cluster_rt_ = new ClusterRuntime(singa_.zookeeper_host(), job);
+  // cluster_rt_->Init();
   hostip_ = GetHostIP();
 }
 

@@ -177,7 +177,8 @@ void Driver::Train(bool resume, const JobProto& job_conf) {
   if (job_conf.num_openblas_threads() != 1)
     LOG(WARNING) << "openblas luanches "
                  << job_conf.num_openblas_threads() << " threads";
-  openblas_set_num_threads(job_conf.num_openblas_threads());
+  LOG(ERROR) << "Open blas " << job_conf.num_openblas_threads();
+  //openblas_set_num_threads(job_conf.num_openblas_threads());
 
   JobProto job;
   job.CopyFrom(job_conf);
@@ -223,17 +224,18 @@ void Driver::Train(const JobProto& job_conf) {
   Stub stub;
   // no need to create Stub if there is only a single worker without servers,
   // i.e., the training will be conducted by the single worker.
-  if (grp_size > 1 || nserver_grps > 0) {
-    stub.Setup();
+  //if (grp_size > 1 || nserver_grps > 0) {
+    stub.Setup(job_conf);
     // TODO(wangwei)  register endpoint to zookeeper if > 1 procs;
     cluster->Register(getpid(), stub.endpoint());  // getpid() is from unistd.h
-  }
+  //}
 
   NeuralNet* net = NeuralNet::Create(job_conf.neuralnet(), kTrain, grp_size);
   WriteStringToTextFile(cluster->vis_folder() + "/train_net.json",
       net->ToGraph(true).ToJson());
   const vector<Worker*> workers = CreateWorkers(job_conf, net);
   const vector<Server*> servers = CreateServers(job_conf, net);
+  CHECK_EQ(servers.size(), 0);
 
 #ifdef USE_MPI
   int nthreads = workers.size() + servers.size() + 1;
@@ -246,13 +248,14 @@ void Driver::Train(const JobProto& job_conf) {
     threads.push_back(std::thread(&Server::Run, server));
   int gpu = 0;
   auto context = Singleton<Context>::Instance();
-  // CHECK_LE(workers.size(), job_conf.gpu_size());
+  CHECK_EQ(workers.size(), job_conf.gpu_size());
   for (auto worker : workers) {
-    threads.push_back(std::thread(&Worker::Run, worker));
     int device_id  = -1;
     if (gpu < job_conf.gpu_size()) {
       device_id = job_conf.gpu(gpu++);
     }
+    LOG(ERROR) << "setup gpu";
+    threads.push_back(std::thread(&Worker::Run, worker));
     context->SetupDevice(threads.back().get_id(), device_id);
   }
   if (grp_size > 1 || nserver_grps > 0) {
@@ -337,7 +340,7 @@ const vector<Worker*> Driver::CreateWorkers(const JobProto& job_conf,
     NeuralNet* train_net = nullptr, *test_net = nullptr, *val_net = nullptr;
     if (gid == gstart) {
       train_net = net;
-      Param::SliceParams(lcm, train_net->params());
+      // Param::SliceParams(lcm, train_net->params());
       // test and validation are performed by the 1st group.
       if (gid == 0 && job_conf.test_steps() > 0) {
         test_net = NeuralNet::Create(job_conf.neuralnet(), kTest, 1);
@@ -352,7 +355,7 @@ const vector<Worker*> Driver::CreateWorkers(const JobProto& job_conf,
       if (cluster->share_memory()) {
         train_net->ShareParamsFrom(net, true);
       } else {
-        Param::SliceParams(lcm, train_net->params());
+        // Param::SliceParams(lcm, train_net->params());
       }
     }
     for (int wid = wstart; wid < wend; wid++) {
