@@ -165,6 +165,18 @@ void SyncedMemory::to_gpu() {
 #endif
 }
 
+void SyncedMemory::CopyToGPUAsync(cudaStream_t stream, CopyEvent* event) {
+  CUDA_CHECK(cudaMemcpyAsync(gpu_ptr_, cpu_ptr_, size_, cudaMemcpyHostToDevice,
+        stream));
+  CUDA_CHECK(cudaStreamAddCallback(stream, Event::Host2Dev, event, 0));
+}
+void SyncedMemory::CopyToCPUAsync(cudaStream_t stream, CopyEvent* event) {
+  CUDA_CHECK(cudaMemcpyAsync(cpu_ptr_, gpu_ptr_, size_, cudaMemcpyDeviceToHost,
+        stream));
+  CUDA_CHECK(cudaStreamAddCallback(stream, Event::Dev2Host, event, 0));
+}
+
+
 template <typename Dtype>
 void Blob<Dtype>::Reshape(const std::vector<int>& shape) {
   shape_ = shape;
@@ -247,7 +259,16 @@ void Blob<Dtype>::ShareData(Blob* other, bool cpu_only) {
   if (cpu_only)
     data_->set_cpu_data(other->mutable_cpu_data());
   else
-    data_ = other->data_;
+    data_ = other->data_;  // e.g., weight sharing in GRU and auto-encoder
+}
+
+template <typename Dtype>
+void CopyToGPUAsync(cudaStream_t stream, CopyEvent* event) {
+  data_->CopyToGPUAsync(stream, event);
+}
+template <typename Dtype>
+void CopyToCPUAsync(cudaStream_t stream, CopyEvent* event) {
+  data_->CopyToCPUAsync(stream, event);
 }
 
 /*

@@ -40,6 +40,7 @@ using std::string;
 /***********************Stub****************************/
 Stub::~Stub() {
   delete router_;
+  delete updater_;
 }
 void Stub::Setup() {
   router_ = new Router();
@@ -48,6 +49,11 @@ void Stub::Setup() {
   const string hostip = cluster->hostip();
   int port = router_->Bind("tcp://" + hostip + ":*");
   endpoint_ = hostip + ":" + std::to_string(port);
+}
+
+void Stub::Setup(const JobProto & conf) {
+  Setup();
+  updater_ = Updater::Create(conf.updater());
 }
 /**
  * Get a hash id for a Param object from a group.
@@ -92,6 +98,7 @@ const std::unordered_map<int, ParamEntry*>  CreateParamShard(
         if (shard.find(hash) == shard.end())
           shard[hash] = new ParamEntry();
         shard[hash]->AddParam(local, param);
+        param->set_worker_id(partition);
       }
     }
   }
@@ -139,8 +146,10 @@ void Stub::Run(const vector<int>& slice2server,
               msg_queue.push(update_msg);
             if (entry->num_update == 0) { // updated just now.
               for (auto *p : entry->shares) {
-                auto *worker = workers[p->location()];
-                worker->EnqueueEvent(new CopyEvent(p, worker, true));
+                auto *worker = workers[p->worker_id()];
+                auto *event = new CopyEvent(p, worker, true);
+                event->param_version = entry->version();
+                worker->EnqueueEvent(event);
               }
             }
             break;
@@ -259,6 +268,7 @@ const vector<Msg*> Stub::HandleUpdateRequest(ParamEntry *entry, Msg** msg) {
     int step = (*msg)->trgt_version();
     GenMsgs(kUpdate, step, entry, *msg, &ret);
     updater_->Update(step, *entry->shares.begin(), 1.0f / entry->num_local);
+    entry->version += 1;
     entry->num_update = 0;
   }
   DeleteMsg(msg);

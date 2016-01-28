@@ -31,6 +31,7 @@
 #include "singa/neuralnet/connection_layer.h"
 #include "singa/neuralnet/neuron_layer.h"
 #include "singa/utils/updater.h"
+#include "singa/utils/event.h"
 
 namespace singa {
 
@@ -215,7 +216,7 @@ class Worker {
   /**
    * Notify stub the gradient is already for aggregating.
    */
-  void SendUpdateMsg(Param* param, Worker* worker, Dealer* dealer);
+  static void SendUpdateMsg(Param* param, Worker* worker, Dealer* dealer);
   /**
    * @param[in] step
    * @return true if it is time to display training info, e.g., loss; otherwise

@@ -48,13 +48,13 @@ extern ms to_cpu_time;
 
 // TODO(wangwei) use cudaMallocHost depending on Context::device.
 inline void MallocHost(void** ptr, size_t size) {
-  *ptr = malloc(size);
-  // cudaMallocHost(ptr, size);
+  // *ptr = malloc(size);
+  CUDA_CHECK(cudaMallocHost(ptr, size));
 }
 
 inline void FreeHost(void* ptr) {
-  free(ptr);
-  // cudaFreeHost(ptr);
+  // free(ptr);
+  CUDA_CHECK(cudaFreeHost(ptr));
 }
 
 /**
@@ -80,6 +80,13 @@ class SyncedMemory {
   void* mutable_gpu_data();
   void set_cpu_data(void* data);
   inline SyncedHead head() { return head_; }
+  void CopyToGPUAsync(cudaStream_t stream, CopyEvent* event);
+  void CopyToCPUAsync(cudaStream_t stream, CopyEvent* event);
+
+  /**
+   * manually sync the GPU and CPU by cudaMemcpyAsync and then set the head.
+   */
+  void sync_head() { head_ = SYNCED; }
   inline size_t size() { return size_; }
 
  private:
@@ -232,16 +239,15 @@ class Blob {
    */
   void CopyToGPUAsync(cudaStream_t stream, CopyEvent* event);
   void CopyToCPUAsync(cudaStream_t stream, CopyEvent* event);
-  void SetHeadGPU() {
-
+  void SyncHead() {
+    data_->sync_head();
   }
-  void SetHeadCPU() {
-
+  inline bool HeadAtGPU() const {
+    return data_->head() == HEAD_AT_GPU;
   }
-
-  /*
-  void Swap(Blob& other);
-  */
+  inline bool HeadAtCPU() const {
+    return data_->head() == HEAD_AT_CPU;
+  }
   /**
    * @return the shape vector.
    */

@@ -229,6 +229,9 @@ class Context {
    * Get the cudaStream of a worker thread for copy between host and device.
    * The stream is a nonblocking stream.
    */
+  cudaStream_t copy_stream() {
+    return copy_stream(device_id(std::this_thread::get_id()));
+  }
   cudaStream_t copy_stream(const std::thread::id thread_id) {
     return copy_stream(device_id(thread_id));
   }

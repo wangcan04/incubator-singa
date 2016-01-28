@@ -58,7 +58,7 @@ void Worker::Setup(int grp_id, int id, const JobProto& conf,
   val_net_ = val_net;
   test_net_ = test_net;
   bridge_dealer_ = dealer_ = nullptr;
-  updater_ = Updater::Create(conf.updater());
+  // updater_ = Updater::Create(conf.updater());
 }
 
 Worker::~Worker() {
@@ -73,8 +73,10 @@ void Worker::Run() {
   int device = context->device_id(std::this_thread::get_id());
   LOG(ERROR) << "Worker (group = " << grp_id_ <<", id = " << id_ << ") "
     << " start on " << (device >= 0 ? "GPU " + std::to_string(device) : "CPU");
-  if (device >= 0)
+  if (device >= 0) {
     context->ActivateDevice(device);
+    copy_stream_ = context->copy_stream();
+  }
 
   auto cluster = Cluster::Get();
   int svr_grp = grp_id_ / cluster->nworker_groups_per_server_group();
@@ -293,7 +295,7 @@ int Worker::Update(int step, Param* param) {
   param->set_last_version(param->version());
   if (param->grad().HeadAtGPU()) {
     param->mutable_grad()->CopyToCpuAsync(copy_stream_,
-        CopyEvent(param, this, false, 0))
+        CopyEvent(param, this, false));
     return 1;
   } else {
     // head of data Blob (SyncMem) to cpu, because the stub thread may use
