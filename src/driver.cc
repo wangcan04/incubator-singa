@@ -261,6 +261,9 @@ void Driver::Train(const JobProto& job_conf) {
     auto slices = Param::ComputeSlices(lcm, net->params());
     auto slice2server = PartitionSlices(nservers_per_grp, slices);
     stub.Run(slice2server, workers, servers);
+  } else {
+    vector<int> slice2server;
+    stub.Run(slice2server, workers, servers);
   }
 
   for (auto& thread : threads)

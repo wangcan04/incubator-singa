@@ -137,6 +137,12 @@ void Stub::Run(const vector<int>& slice2server,
             entry = shard.at(Hash(grp, paramid));
             for (auto update_msg : HandleUpdateRequest(entry, &msg))
               msg_queue.push(update_msg);
+            if (entry->num_update == 0) { // updated just now.
+              for (auto *p : entry->shares) {
+                auto *worker = workers[p->location()];
+                worker->EnqueueEvent(new CopyEvent(p, worker, true));
+              }
+            }
             break;
           case kRUpdate:
             grp = AddrGrp(msg->dst());
@@ -198,6 +204,7 @@ Dealer* Stub::CreateInterProcsDealer(int dst_procs) {
 
 void Stub::GenMsgs(int type, int version, ParamEntry* entry, Msg* msg,
                       vector<Msg*> *ret) {
+  return;
   int procs_id = Cluster::Get()->procs_id();
   int src_grp = AddrGrp(msg->src());
   int dst_grp = src_grp / Cluster::Get()->nworker_groups_per_server_group();
@@ -251,6 +258,7 @@ const vector<Msg*> Stub::HandleUpdateRequest(ParamEntry *entry, Msg** msg) {
     }
     int step = (*msg)->trgt_version();
     GenMsgs(kUpdate, step, entry, *msg, &ret);
+    updater_->Update(step, *entry->shares.begin(), 1.0f / entry->num_local);
     entry->num_update = 0;
   }
   DeleteMsg(msg);
@@ -259,6 +267,9 @@ const vector<Msg*> Stub::HandleUpdateRequest(ParamEntry *entry, Msg** msg) {
 
 const vector<Msg*> Stub::HandlePutRequest(ParamEntry* entry, Msg** msg) {
   vector<Msg*> ret;
+  int v = entry->shares[0]->version();
+  for (auto *p : entry->shares)
+    p->set_version(v);
   int version = (*msg)->trgt_version();
   GenMsgs(kPut, version, entry, *msg, &ret);
   DeleteMsg(msg);

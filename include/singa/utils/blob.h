@@ -227,6 +227,18 @@ class Blob {
    */
   void ShareData(Blob* other, bool cpu_only = true);
 
+  /**
+   *
+   */
+  void CopyToGPUAsync(cudaStream_t stream, CopyEvent* event);
+  void CopyToCPUAsync(cudaStream_t stream, CopyEvent* event);
+  void SetHeadGPU() {
+
+  }
+  void SetHeadCPU() {
+
+  }
+
   /*
   void Swap(Blob& other);
   */
@@ -244,12 +256,14 @@ class Blob {
   inline int count() const {
     return count_;
   }
+  /*
   inline int version() const {
     return version_;
   }
   inline void set_version(int v) {
     version_ = v;
   }
+  */
   inline const Dtype* cpu_data() const {
     CHECK(data_);
     return static_cast<const Dtype*>(data_->cpu_data());
@@ -287,7 +301,7 @@ class Blob {
   std::vector<int> shape_;
   int count_ = 0;
   int capacity_ = 0;
-  int version_ = -1;
+  // int version_ = -1;
   bool transpose_ = false;
 };  // class Blob
 

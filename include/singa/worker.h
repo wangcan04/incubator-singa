@@ -200,6 +200,22 @@ class Worker {
    * Call Collect() for every param of net
    */
   int CollectAll(int step, NeuralNet* net);
+
+  /**
+   * check the copy queue to start the async copy of data from host to dev
+   */
+  void CopyToGPUAsync();
+  /**
+   * Insert copy event (from host to dev) into the copy queue by other threads.
+   */
+  void EnqueueEvent(CopyEvent* event) {
+    copy_queue_.push(event);
+  }
+
+  /**
+   * Notify stub the gradient is already for aggregating.
+   */
+  void SendUpdateMsg(Param* param, Worker* worker, Dealer* dealer);
   /**
    * @param[in] step
    * @return true if it is time to display training info, e.g., loss; otherwise
@@ -280,6 +296,7 @@ class Worker {
   Dealer* bridge_dealer_ = nullptr;
   std::unordered_map<std::string, Layer*> name2bridge_;
   Updater* updater_;
+  SafeQueue<Event*> copy_queue_;
 };
 
 class BPWorker: public Worker {

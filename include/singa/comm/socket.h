@@ -115,6 +115,7 @@ class Dealer : public SocketInterface {
   void* InternalID() const override;
 
  protected:
+  //!< used by the cuda driver thread
   int id_ = -1;
 #ifdef USE_ZMQ
   zsock_t* dealer_ = nullptr;

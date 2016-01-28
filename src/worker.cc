@@ -290,30 +290,38 @@ int Worker::Get(int step, Param* param) {
 }
 
 int Worker::Update(int step, Param* param) {
-  //updater_->Update(step, param, 1.0f);
-  return 1;
   param->set_last_version(param->version());
+  if (param->grad().HeadAtGPU()) {
+    param->mutable_grad()->CopyToCpuAsync(copy_stream_,
+        CopyEvent(param, this, false, 0))
+    return 1;
+  } else {
+    // head of data Blob (SyncMem) to cpu, because the stub thread may use
+    // cudaMemcpy copy gradients into msgs. cudaMemcpy hangs when called by the
+    // stub thread on some GPU machines.
+    // TODO(wangwei) fix this issue and remove the following line.
+    // optimize for training with single worker by removing stub and server, and
+    // updating parameters locally inside the worker GPU. Then we do not need to
+    // transfer gradients and parameter values between GPU-CPU.
+    param->grad().cpu_data();
+    // change the head of SyncMem to cpu; otherwise, the updated parameter
+    // values would not be synced to gpu (since the head is at gpu).
+    param->mutable_data()->mutable_cpu_data();
+  }
   if (dealer_ == nullptr) {
     LOG(WARNING) << "Null dealer in worker (" << grp_id_ << ", " << id_ << ")";
     return 1;
   }
-  // head of data Blob (SyncMem) to cpu, because the stub thread may use
-  // cudaMemcpy copy gradients into msgs. cudaMemcpy hangs when called by the
-  // stub thread on some GPU machines.
-  // TODO(wangwei) fix this issue and remove the following line.
-  // optimize for training with single worker by removing stub and server, and
-  // updating parameters locally inside the worker GPU. Then we do not need to
-  // transfer gradients and parameter values between GPU-CPU.
-  param->grad().cpu_data();
-  // change the head of SyncMem to cpu; otherwise, the updated parameter
-  // values would not be synced to gpu (since the head is at gpu).
-  param->mutable_data()->mutable_cpu_data();
+  SendUpdateMsg(param, this, dealer_);
+}
 
-  Msg* msg = new Msg(Addr(grp_id_, id_, kWorkerParam), Addr(-1, -1, kStub));
-  msg->set_trgt(ParamTrgt(param->owner(), 0), step);
+void Worker::SendUpdateMsg(Param* param, Worker* worker,
+    Dealer* dealer) {
+  Msg* msg = new Msg(Addr(worker->grp_id(), worker->id(), kWorkerParam),
+      Addr(-1, -1, kStub));
+  msg->set_trgt(ParamTrgt(param->owner(), 0), worker->step());
   msg->set_type(kUpdate);
-  dealer_->Send(&msg);
-  return 1;
+  dealer->Send(&msg);
 }
 
 int Worker::CollectAll(int step, NeuralNet* net) {
@@ -347,6 +355,15 @@ void Worker::Display(int flag, const std::string& prefix, NeuralNet* net) {
   }
 }
 
+void Worker::CopyToGPUAsync() {
+  CopyEvent* event = nullptr;
+  while(copy_queue_.try_pop(event)) {
+    // copy param values
+    event->param->mutable_data()->CopyToGPUAsync(copy_stream_, event);
+    // TODO copy layer value/gradient
+  }
+}
+
 /****************************BPWorker**********************************/
 void BPWorker::TrainOneBatch(int step, NeuralNet* net) {
   auto start_tick = get_time::now();
@@ -354,7 +371,7 @@ void BPWorker::TrainOneBatch(int step, NeuralNet* net) {
   auto tick = get_time::now();
   fp_time +=std::chrono::duration_cast<ms>(tick - start_tick);
   Backward(step, net);
-  bp_time +=std::chrono::duration_cast<ms>(get_time::now() - start_tick);
+  bp_time +=std::chrono::duration_cast<ms>(get_time::now() - tick);
 }
 
 void BPWorker::TestOneBatch(int step, Phase phase, NeuralNet* net) {
@@ -388,6 +405,7 @@ void BPWorker::Backward(int step, NeuralNet* net) {
   map<string, string> label;
   auto& layers = net->layers();
   for (auto it = layers.rbegin(); it != layers.rend(); it++) {
+    CheckCopyQueue();
     Layer* layer = *it;
     if (layer->partition_id() == id_) {
       layer->ComputeGradient(kTrain | kBackward, net->srclayers(layer));

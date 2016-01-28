@@ -225,6 +225,29 @@ class Context {
     }
     return curand_generator_[device_id];
   }
+  /**
+   * Get the cudaStream of a worker thread for copy between host and device.
+   * The stream is a nonblocking stream.
+   */
+  cudaStream_t copy_stream(const std::thread::id thread_id) {
+    return copy_stream(device_id(thread_id));
+  }
+
+  cudaStream_t copy_stream(const int device_id) {
+    if (copy_stream_.at(device_id) == nullptr) {
+      CHECK_EQ(cudaStreamCreateWithFlags(
+            &copy_stream_[device_id], cudaStreamNonBlocking), cudaSuccess);
+    }
+    return copy_stream_[device_id];
+  }
+
+  Dealer* driver_dealer() {
+    if (dealer_ == nullptr) {
+      dealer_ = new Dealer();
+      dealer_->Connect("inproc://router");
+    }
+    return dealer_;
+  }
 
 #ifdef USE_CUDNN
   cudnnHandle_t cudnn_handle() {
@@ -264,6 +287,11 @@ class Context {
   std::vector<cublasHandle_t> cublas_handle_;
   //!< cublas rand generator indexed by GPU device ID
   std::vector<curandGenerator_t> curand_generator_;
+  //!< cuda stream for async copy indexed by GPU device ID
+  std::vector<cudaStram_t> copy_stream_;
+
+  //!< Dealer socket for sending msg to router
+  Dealer* dealer_ = nullptr;
 
 #ifdef USE_CUDNN
   std::vector<cudnnHandle_t> cudnn_handle_;
