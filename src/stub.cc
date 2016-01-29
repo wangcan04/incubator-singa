@@ -272,7 +272,7 @@ const vector<Msg*> Stub::HandleUpdateRequest(ParamEntry *entry, Msg** msg) {
     }
     int step = (*msg)->trgt_version();
     GenMsgs(kUpdate, step, entry, *msg, &ret);
-    updater_->Update(step, *entry->shares.begin(), 1.0f / entry->num_local);
+    //updater_->Update(step, *entry->shares.begin(), 1.0f / entry->num_local);
     entry->version += 1;
     entry->num_update = 0;
   }

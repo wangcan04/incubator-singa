@@ -25,6 +25,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <atomic>
 #include "singa/comm/socket.h"
 #include "singa/neuralnet/neuralnet.h"
 #include "singa/proto/job.pb.h"
@@ -290,6 +291,12 @@ class Worker {
 
   inline int step() const { return step_; }
 
+  void IncToCPU() { to_cpu++;}
+  void DecToCPU() { to_cpu--;}
+  void IncToGPU() { to_gpu++;}
+  void DecToGPU() { to_gpu--;}
+
+
  protected:
   int grp_id_ = -1, id_ = -1;
   int step_ = 0;
@@ -304,6 +311,7 @@ class Worker {
   Updater* updater_;
   SafeQueue<CopyEvent> copy_queue_;
   cudaStream_t up_stream_, down_stream_;
+  std::atomic<int> to_cpu, to_gpu;
 };
 
 class BPWorker: public Worker {

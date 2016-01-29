@@ -45,6 +45,7 @@
  * Add helper functions for users to generate configurations for popular models
  * easily, e.g., MLP(layer1_size, layer2_size, tanh, loss);
  */
+extern int kQueueSize;
 int main(int argc, char **argv) {
   if (argc < 4) {
     std::cout << "Args: -conf JOB_CONF -singa SINGA_CONF -job_id JOB_ID "
@@ -65,6 +66,9 @@ int main(int argc, char **argv) {
 
   // get the job conf, and custmize it if need
   singa::JobProto jobConf = driver.job_conf();
+  int pos = singa::ArgPos(argc, argv, "-q");
+  if ( pos != -1)
+    kQueueSize = atoi(argv[pos+1]);
 
   if (singa::ArgPos(argc, argv, "-test") != -1) {
     driver.Test(jobConf);

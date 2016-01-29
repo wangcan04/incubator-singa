@@ -1,6 +1,7 @@
 #ifndef SAFEQUEUE_HPP_
 #define SAFEQUEUE_HPP_
 #include <queue>
+#include <stack>
 #include <list>
 #include <mutex>
 #include <thread>
@@ -89,7 +90,7 @@ class SafeQueue
         {
         return !m_queue.empty();
         });
-    item = m_queue.front();
+    item = m_queue.top() ;// front();
     m_queue.pop();
   }
 
@@ -106,7 +107,7 @@ class SafeQueue
         {
         return !m_queue.empty();
         });
-    item = std::move (m_queue.front());
+    item = std::move (m_queue.top()); //front
     m_queue.pop();
   }
 
@@ -122,7 +123,7 @@ class SafeQueue
     if (m_queue.empty())
       return false;
 
-    item = m_queue.front();
+    item = m_queue.top(); //front
     m_queue.pop();
     return true;
   }
@@ -140,7 +141,7 @@ class SafeQueue
     if (m_queue.empty())
       return false;
 
-    item = std::move (m_queue.front());
+    item = std::move (m_queue.top()); //front
     m_queue.pop();
     return true;
   }
@@ -164,7 +165,7 @@ class SafeQueue
         return false;
     }
 
-    item = m_queue.front();
+    item = m_queue.top(); //front
     m_queue.pop();
     return true;
   }
@@ -190,7 +191,7 @@ class SafeQueue
         return false;
     }
 
-    item = std::move (m_queue.front());
+    item = std::move (m_queue.top()); //front
     m_queue.pop();
     return true;
   }
@@ -266,7 +267,8 @@ class SafeQueue
 
   private:
 
-  std::queue<T, Container> m_queue;
+  // queue
+  std::stack<T, Container> m_queue;
   mutable std::mutex m_mutex;
   std::condition_variable m_condition;
   unsigned int m_max_num_items = 100;
