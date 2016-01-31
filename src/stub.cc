@@ -148,11 +148,11 @@ void Stub::Run(const vector<int>& slice2server,
             for (auto update_msg : HandleUpdateRequest(entry, &msg))
               msg_queue.push(update_msg);
             if (entry->num_update == 0) { // updated just now.
-              CHECK_EQ(entry->shares.size(), 1);
+              // CHECK_EQ(entry->shares.size(), 1);
               for (auto *p : entry->shares) {
                 auto *worker = workers[p->worker_id()];
                 CHECK_EQ(worker->id(), p->worker_id());
-                CHECK_EQ(paramid, p->id());
+                // CHECK_EQ(paramid, p->id());
                 CopyEvent event(p, worker, true);
                 event.param_version = entry->version;
                 p->mutable_grad()->SyncHead();
