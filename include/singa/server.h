@@ -30,8 +30,6 @@
 #include "singa/utils/updater.h"
 
 namespace singa {
-using ms = std::chrono::microseconds;
-extern ms update_time;
 
  /* Repsond to worker's get/put/udpate request, and periodically syncing with
   * other servers.

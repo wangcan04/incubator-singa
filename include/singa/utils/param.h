@@ -219,6 +219,8 @@ class Param {
   inline Blob<float>* mutable_data() { return &data_; }
   inline const Blob<float> &grad() const { return grad_; }
   inline Blob<float> *mutable_grad() { return &grad_; }
+  inline const Blob<float> history() { return history_; }
+  inline Blob<float> *mutable_history() { return &history_; }
   inline float* mutable_cpu_data() { return data_.mutable_cpu_data(); }
   inline float* mutable_cpu_grad() { return grad_.mutable_cpu_data(); }
   inline float* mutable_cpu_history() { return history_.mutable_cpu_data(); }

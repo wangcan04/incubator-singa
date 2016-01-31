@@ -32,10 +32,12 @@
 #include "singa/utils/tinydir.h"
 #include "singa/utils/math_blob.h"
 
+extern bool async_copy;
 namespace singa {
 
 using std::vector;
 using std::string;
+
 
 /***********************Stub****************************/
 Stub::~Stub() {
@@ -153,8 +155,12 @@ void Stub::Run(const vector<int>& slice2server,
                 CHECK_EQ(paramid, p->id());
                 CopyEvent event(p, worker, true);
                 event.param_version = entry->version;
+                p->mutable_grad()->SyncHead();
                 // LOG(ERROR) << "enqueue param " << p->id();
-                worker->EnqueueEvent(event);
+                if (async_copy)
+                  worker->EnqueueEvent(event);
+                else
+                  p->set_version(p->version() + 1);
               }
             }
             break;
@@ -272,7 +278,7 @@ const vector<Msg*> Stub::HandleUpdateRequest(ParamEntry *entry, Msg** msg) {
     }
     int step = (*msg)->trgt_version();
     GenMsgs(kUpdate, step, entry, *msg, &ret);
-    //updater_->Update(step, *entry->shares.begin(), 1.0f / entry->num_local);
+    updater_->Update(step, *entry->shares.begin(), 1.0f / entry->num_local);
     entry->version += 1;
     entry->num_update = 0;
   }

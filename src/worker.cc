@@ -33,11 +33,13 @@
 #include "singa/server.h"
 
 int kQueueSize=5;
+bool worker_update = false, async_copy=false;
 namespace singa {
 using ms = std::chrono::microseconds;
 using mms = std::chrono::milliseconds;
 using get_time = std::chrono::steady_clock;
 ms fp_time, bp_time;
+extern ms update_time;
 using std::string;
 Worker* Worker::Create(const AlgProto& conf) {
   auto factory = Singleton<Factory<singa::Worker>>::Instance();
@@ -83,7 +85,12 @@ void Worker::Setup(int grp_id, int id, const JobProto& conf,
   val_net_ = val_net;
   test_net_ = test_net;
   bridge_dealer_ = dealer_ = nullptr;
-  // updater_ = Updater::Create(conf.updater());
+  if (worker_update) {
+    updater_ = Updater::Create(conf.updater());
+    LOG(ERROR) << "worker update";
+  }
+  if (async_copy)
+    LOG(ERROR) << "worker async copy";
 }
 
 Worker::~Worker() {
@@ -330,7 +337,12 @@ int Worker::Get(int step, Param* param) {
 
 int Worker::Update(int step, Param* param) {
   param->set_last_version(param->version());
-  if (param->grad().HeadAtGPU()) {
+  if (updater_ != nullptr) {
+    updater_->Update(step, param, 1.0f);
+    param->set_version(param->version() + 1);
+    return 1;
+  }
+  if (async_copy && param->grad().HeadAtGPU()) {
     // LOG(ERROR) << "update param " << param->id();
     param->mutable_grad()->CopyToCPUAsync(down_stream_, Worker::Dev2Host,
         new CopyEvent(param, this, false));
@@ -347,7 +359,7 @@ int Worker::Update(int step, Param* param) {
     param->grad().cpu_data();
     // change the head of SyncMem to cpu; otherwise, the updated parameter
     // values would not be synced to gpu (since the head is at gpu).
-    param->mutable_data()->mutable_cpu_data();
+    param->mutable_data()->SyncHead(); // mutable_cpu_data();
   }
   if (dealer_ == nullptr) {
     LOG(WARNING) << "Null dealer in worker (" << grp_id_ << ", " << id_ << ")";
@@ -388,8 +400,7 @@ int Worker::Collect(int step, Param* param) {
     k++;
     // LOG(ERROR) << "wait  "<< param->id() << " at " << step << " by " <<id_;
   }
-  if (k)
-    LOG(ERROR) << "param id="<<param->id()<<" wait times " << k;
+  // if (k) LOG(ERROR) << "param id="<<param->id()<<" wait times " << k;
   return 1;
 }
 

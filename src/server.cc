@@ -35,8 +35,6 @@ namespace singa {
 using namespace mshadow;
 using std::vector;
 
-ms update_time;
-using get_time = std::chrono::steady_clock;
 Server::Server(int group_id, int server_id,
     const JobProto& job_conf,
     const vector<int>& slice2group,
@@ -200,12 +198,10 @@ const vector<Msg*> Server::HandleUpdate(Msg **msg) {
     int step = (*msg)->trgt_version();
     int trgt_val = (*msg)->trgt_val();
     auto param = entry->shares.at(0);
-    auto start_tick = get_time::now();
-    // extract and aggregate gradients
+        // extract and aggregate gradients
     param->ParseUpdateMsgs(request);
     // DLOG(ERROR) << "update param " << param->id() << " @ step " << step;
     updater_->Update(step, param, 1.0f / entry->num_total);
-    update_time += std::chrono::duration_cast<ms>(get_time::now() - start_tick);
     param->set_version(param->version() + 1);
     // response to all shares of this param
     for (auto response : param->GenUpdateResponseMsgs(&request, false)) {

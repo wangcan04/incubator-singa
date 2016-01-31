@@ -46,6 +46,7 @@
  * easily, e.g., MLP(layer1_size, layer2_size, tanh, loss);
  */
 extern int kQueueSize;
+extern bool async_copy, worker_update;
 int main(int argc, char **argv) {
   if (argc < 4) {
     std::cout << "Args: -conf JOB_CONF -singa SINGA_CONF -job_id JOB_ID "
@@ -70,6 +71,10 @@ int main(int argc, char **argv) {
   if ( pos != -1)
     kQueueSize = atoi(argv[pos+1]);
 
+  if(singa::ArgPos(argc, argv, "-worker_update") != -1)
+    worker_update = true;
+  if(singa::ArgPos(argc, argv, "-async_copy") != -1)
+    async_copy=true;
   if (singa::ArgPos(argc, argv, "-test") != -1) {
     driver.Test(jobConf);
   } else {

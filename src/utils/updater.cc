@@ -25,6 +25,8 @@
 #include "mshadow/tensor.h"
 #include "singa/utils/singleton.h"
 #include "singa/utils/factory.h"
+#include "singa/utils/math_blob.h"
+#include <chrono>
 
 namespace singa {
 
@@ -36,6 +38,10 @@ using mshadow::Shape;
 using mshadow::Shape1;
 using mshadow::Tensor;
 using mshadow::TensorContainer;
+
+ms update_time;
+using get_time = std::chrono::steady_clock;
+
 
 LRGenerator* LRGenerator::Create(const LRGenProto& proto) {
   auto factory = Singleton<Factory<LRGenerator>>::Instance();
@@ -119,23 +125,24 @@ void Updater::Clip(const float low, const float high, Param* param) {
 void SGDUpdater::Update(int step, Param* param, float grad_scale) {
   if (clip_high_ > clip_low_)
     Clip(clip_low_, clip_high_, param);
-  Shape<1> s = Shape1(param->size());
-  Tensor<cpu, 1> data(param->mutable_cpu_data(), s);
-  Tensor<cpu, 1> grad(param->mutable_cpu_grad(), s);
+  auto start_tick = get_time::now();
+  CHECK(!param->grad().HeadAtGPU());
+  CHECK(!param->data().HeadAtGPU());
+
   float lr = lr_gen_->Get(step) * param->lr_scale();
   float wd = weight_decay_ * param->wd_scale();
   if (grad_scale != 1.f)
-    grad *= grad_scale;
+    Scale(grad_scale, param->mutable_grad());
   if (wd > 0)  // L2 regularization, should be done after timing grad_scale
-    grad += data * wd;
+    AXPY(wd, param->data(), param->mutable_grad());
   if (momentum_ > 0) {
-    Tensor<cpu, 1> history(param->mutable_cpu_history(), s);
-    history = history * momentum_ - lr * grad;
-    data += history;
+    Scale(momentum_, param->mutable_history());
+    AXPY(-lr, param->grad(), param->mutable_history());
+    AXPY(1.0f, param->history(), param->mutable_data());
   } else {
-    grad *= -lr;
-    data += grad;
+    AXPY(-lr, param->grad(), param->mutable_data());
   }
+  update_time += std::chrono::duration_cast<ms>(get_time::now() - start_tick);
 }
 
 /***********************Nesterov******************************/
