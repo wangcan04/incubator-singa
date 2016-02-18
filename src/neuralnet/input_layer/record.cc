@@ -59,8 +59,9 @@ bool RecordInputLayer::Parse(int k, int flag, const string& key,
     CHECK_EQ(size, image.pixel().size());
     float* ptr = data_.mutable_cpu_data() + k * size;
     string pixel = image.pixel();
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < size; i++) {
       ptr[i] =  static_cast<float>(static_cast<uint8_t>(pixel[i]));
+    }
   } else {
     LOG(ERROR) << "not pixel nor pixel";
   }

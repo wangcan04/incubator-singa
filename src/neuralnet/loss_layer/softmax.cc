@@ -45,6 +45,7 @@ void SoftmaxLossLayer::Setup(const LayerProto& proto,
   data_.Reshape(srclayers[0]->data(this).shape());
   batchsize_ = data_.shape()[0];
   dim_ = data_.count() / batchsize_;
+  LOG(ERROR) << "softmax's dimension = " << dim_;
   topk_ = proto.softmaxloss_conf().topk();
   scale_ = proto.softmaxloss_conf().scale();
 }
@@ -102,8 +103,10 @@ const std::string SoftmaxLossLayer::ToString(bool debug, int flag) {
   if (debug)
     return Layer::ToString(debug, flag);
 
-  string disp = "Loss = " + std::to_string(loss_ / counter_)
+  string disp = "In here Loss = " + std::to_string(loss_ / counter_)
     + ", accuracy = " + std::to_string(accuracy_ / counter_);
+  if (flag==kTest)
+    disp = disp + " (in testing mode)";
   counter_ = 0;
   loss_ = accuracy_ = 0;
   return disp;

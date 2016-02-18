@@ -113,9 +113,11 @@ void Worker::Run() {
 }
 
 void Worker::Test(int steps, Phase phase, NeuralNet* net) {
+  LOG(ERROR) << "Testing steps = " << steps;
   for (int step = 0; step < steps; step++)
     TestOneBatch(step, phase, net);
   Display(phase, " ", net);
+  LOG(ERROR) << "Done testing steps = " << steps; 
 }
 
 void ConnectStub(int grp, int id, Dealer* dealer, EntityType entity) {
@@ -344,7 +346,6 @@ void BPWorker::Forward(int step, Phase phase, NeuralNet* net) {
           Collect(step, p);
         }
       }
-      // DLOG(ERROR) << "Forward " << layer->name();
       layer->ComputeFeature(phase | kForward, net->srclayers(layer));
       if (job_conf_.debug() && DisplayNow(step) && grp_id_ == 0)
         label[layer->name()] = layer->ToString(true, phase | kForward);
