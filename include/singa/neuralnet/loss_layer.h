@@ -29,6 +29,8 @@
 
 namespace singa {
 using std::vector;
+class ConfusionMatrix; 
+
 /**
  * Squared Euclidean loss as @f$0.5 ||p - t||^2@f$, where p is prediction
  * result, t is the ground truth.
@@ -60,6 +62,7 @@ class SoftmaxLossLayer : public LossLayer {
   int batchsize_, topk_, dim_, counter_ = 0;
   float scale_;
   float loss_ = 0.0f, accuracy_ = 0.0f;
+  ConfusionMatrix *confusion_; 
 };
 
 #ifdef USE_CUDNN

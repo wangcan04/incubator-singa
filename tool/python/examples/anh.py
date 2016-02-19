@@ -37,13 +37,14 @@ m.add(Activation('relu'))
 m.add(LRN2D(1, alpha=0.00005, beta=0.75))
 
 
-'''
+
 m.add(Convolution2D(10, (11,1), (1,1), (5,0), b_lr=2))
 m.add(Activation('relu'))
 m.add(AvgPooling2D(pool_size=(1), stride=2))
 m.add(LRN2D(1, alpha=0.00005, beta=0.75))
 
-m.add(Convolution2D(20, 11, 1, 5))
+'''
+m.add(Convolution2D(10, (11,1), (1,1), (5,0)))
 m.add(Activation('relu'))
 m.add(AvgPooling2D(pool_size=(1), stride=2))
 '''
@@ -54,6 +55,6 @@ sgd = SGD(decay=0.004, momentum=0.9, lr_type='manual', step=(0,60000,65000), ste
 topo = Cluster(workspace)
 m.compile(loss='categorical_crossentropy', optimizer=sgd, cluster=topo)
 
-m.fit(X_train, nb_epoch=5000, with_test=True)
-result = m.evaluate(X_test, test_steps=10, test_freq=300)
+m.fit(X_train, nb_epoch=2000, with_test=True)
+result = m.evaluate(X_test, test_steps=100, test_freq=125)
 

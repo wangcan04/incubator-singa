@@ -93,6 +93,7 @@ SINGA_SRCS := src/driver.cc \
               src/io/textfile_store.cc \
               src/io/store.cc \
               src/utils/cluster.cc \
+              src/utils/confusion.cc \
               src/utils/cluster_rt.cc \
               src/utils/graph.cc \
               src/utils/common.cc \
@@ -105,6 +106,7 @@ SINGA_HDRS := include/singa.h \
 			  include/singa/utils/math_blob.h \
 			  include/singa/utils/math_addr.h \
 			  include/singa/utils/cluster.h \
+        include/singa/utils/confusion.h \
               include/utils/cluster_rt.h \
               include/utils/param.h \
               include/utils/common.h \
