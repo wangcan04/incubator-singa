@@ -1,0 +1,279 @@
+E0221 15:53:33.934623 13576 cluster.cc:50] proc #0 -> 0.0.0.0:49152 (pid = 13576)
+E0221 15:53:33.939980 13607 worker.cc:68] Worker (group = 0, id = 0)  start on CPU
+E0221 15:53:33.940414 13606 server.cc:62] Server (group = 0, id = 0) start
+E0221 15:53:35.945413 13607 worker.cc:87] Test @ step 0
+E0221 15:53:35.945448 13607 worker.cc:116] Testing steps = 100
+E0221 15:53:55.640503 13607 worker.cc:324]    Loss = 0.693318, accuracy = 0.411875
+Confusion matrix: [true labels][predicted]
+  1183  1839
+    43  135
+     Average row accuracy = 0.574945
+      Precision = 0.068389
+       Recall = 0.758427
+        F1 = 0.125465
+        E0221 15:53:55.640574 13607 worker.cc:120] Done testing steps = 100
+        E0221 15:53:56.541115 13607 worker.cc:324] Train @ step 0  Loss = 0.693388, accuracy = 0.468750
+        E0221 15:54:13.769062 13607 worker.cc:324] Train @ step 50  Loss = 0.378690, accuracy = 0.911875
+        E0221 15:54:25.103621 13607 worker.cc:87] Test @ step 100
+        E0221 15:54:25.103705 13607 worker.cc:116] Testing steps = 100
+        E0221 15:54:36.922737 13607 worker.cc:324]    Loss = 0.274475, accuracy = 0.945625
+        Confusion matrix: [true labels][predicted]
+          3026  0
+            174 0
+             Average row accuracy = 0.500000
+              Precision = -nan
+               Recall = 0.000000
+                F1 = -nan
+                E0221 15:54:36.922801 13607 worker.cc:120] Done testing steps = 100
+                E0221 15:54:37.145318 13607 worker.cc:324] Train @ step 100  Loss = 0.441864, accuracy =
+                0.924375
+                E0221 15:54:48.288960 13607 worker.cc:324] Train @ step 150  Loss = 0.259104, accuracy =
+                0.951875
+                E0221 15:54:59.044579 13607 worker.cc:87] Test @ step 200
+                E0221 15:54:59.044616 13607 worker.cc:116] Testing steps = 100
+                E0221 15:55:10.755131 13607 worker.cc:324]    Loss = 0.199011, accuracy = 0.943750
+                Confusion matrix: [true labels][predicted]
+                  3020  0
+                    180 0
+                     Average row accuracy = 0.500000
+                      Precision = -nan
+                       Recall = 0.000000
+                        F1 = -nan
+                        E0221 15:55:10.755199 13607 worker.cc:120] Done testing steps = 100
+                        E0221 15:55:10.975762 13607 worker.cc:324] Train @ step 200  Loss = 0.212869, accuracy
+                        = 0.940625
+                        E0221 15:55:22.035115 13607 worker.cc:324] Train @ step 250  Loss = 0.198166, accuracy
+                        = 0.942500
+                        E0221 15:55:32.982628 13607 worker.cc:87] Test @ step 300
+                        E0221 15:55:32.982676 13607 worker.cc:116] Testing steps = 100
+                        E0221 15:55:44.866461 13607 worker.cc:324]    Loss = 0.183994, accuracy = 0.947187
+                        Confusion matrix: [true labels][predicted]
+                          3025  1
+                            168 6
+                             Average row accuracy = 0.517076
+                              Precision = 0.857143
+                               Recall = 0.034483
+                                F1 = 0.066298
+                                E0221 15:55:44.866533 13607 worker.cc:120] Done testing steps = 100
+                                E0221 15:55:45.088534 13607 worker.cc:324] Train @ step 300  Loss = 0.218478,
+                                accuracy = 0.929375
+                                E0221 15:55:56.372253 13607 worker.cc:324] Train @ step 350  Loss = 0.178707,
+                                accuracy = 0.950000
+                                E0221 15:56:07.457903 13607 worker.cc:87] Test @ step 400
+                                E0221 15:56:07.457952 13607 worker.cc:116] Testing steps = 100
+                                E0221 15:56:19.509647 13607 worker.cc:324]    Loss = 0.182732, accuracy =
+                                0.947187
+                                Confusion matrix: [true labels][predicted]
+                                  3008  16
+                                    153 23
+                                     Average row accuracy = 0.562695
+                                      Precision = 0.589744
+                                       Recall = 0.130682
+                                        F1 = 0.213953
+                                        E0221 15:56:19.509716 13607 worker.cc:120] Done testing steps = 100
+                                        E0221 15:56:19.738164 13607 worker.cc:324] Train @ step 400  Loss =
+                                        0.199344, accuracy = 0.942500
+                                        E0221 15:56:30.986570 13607 worker.cc:324] Train @ step 450  Loss =
+                                        0.200980, accuracy = 0.941875
+                                        E0221 15:56:41.868499 13607 worker.cc:87] Test @ step 500
+                                        E0221 15:56:41.868587 13607 worker.cc:116] Testing steps = 100
+                                        E0221 15:56:53.719362 13607 worker.cc:324]    Loss = 0.178209,
+                                        accuracy = 0.949063
+                                        Confusion matrix: [true labels][predicted]
+                                          3016  4
+                                            159 21
+                                             Average row accuracy = 0.557671
+                                              Precision = 0.840000
+                                               Recall = 0.116667
+                                                F1 = 0.204878
+                                                E0221 15:56:53.719517 13607 worker.cc:120] Done testing steps
+                                                = 100
+                                                E0221 15:56:53.937422 13607 worker.cc:324] Train @ step 500
+                                                Loss = 0.188546, accuracy = 0.945625
+                                                E0221 15:57:05.143453 13607 worker.cc:324] Train @ step 550
+                                                Loss = 0.163827, accuracy = 0.950000
+                                                E0221 15:57:16.142797 13607 worker.cc:87] Test @ step 600
+                                                E0221 15:57:16.143016 13607 worker.cc:116] Testing steps = 100
+                                                E0221 15:57:28.118338 13607 worker.cc:324]    Loss = 0.177362,
+                                                accuracy = 0.950000
+                                                Confusion matrix: [true labels][predicted]
+                                                  3021  5
+                                                    155 19
+                                                     Average row accuracy = 0.553772
+                                                      Precision = 0.791667
+                                                       Recall = 0.109195
+                                                        F1 = 0.191919
+                                                        E0221 15:57:28.118414 13607 worker.cc:120] Done
+                                                        testing steps = 100
+                                                        E0221 15:57:28.346906 13607 worker.cc:324] Train @
+                                                        step 600  Loss = 0.162818, accuracy = 0.953125
+                                                        E0221 15:57:39.447897 13607 worker.cc:324] Train @
+                                                        step 650  Loss = 0.207948, accuracy = 0.939375
+                                                        E0221 15:57:50.257757 13607 worker.cc:87] Test @ step
+                                                        700
+                                                        E0221 15:57:50.257853 13607 worker.cc:116] Testing
+                                                        steps = 100
+                                                        E0221 15:58:02.118317 13607 worker.cc:324]    Loss =
+                                                        0.173193, accuracy = 0.950938
+                                                        Confusion matrix: [true labels][predicted]
+                                                          3026  1
+                                                            156 17
+                                                             Average row accuracy = 0.548968
+                                                              Precision = 0.944444
+                                                               Recall = 0.098266
+                                                                F1 = 0.178010
+                                                                E0221 15:58:02.118392 13607 worker.cc:120]
+                                                                Done testing steps = 100
+                                                                E0221 15:58:02.339256 13607 worker.cc:324]
+                                                                Train @ step 700  Loss = 0.143283, accuracy =
+                                                                0.960000
+                                                                E0221 15:58:13.498751 13607 worker.cc:324]
+                                                                Train @ step 750  Loss = 0.174067, accuracy =
+                                                                0.946875
+                                                                E0221 15:58:24.469833 13607 worker.cc:87] Test
+                                                                @ step 800
+                                                                E0221 15:58:24.469926 13607 worker.cc:116]
+                                                                Testing steps = 100
+                                                                E0221 15:58:36.457401 13607 worker.cc:324]
+                                                                Loss = 0.200849, accuracy = 0.940625
+                                                                Confusion matrix: [true labels][predicted]
+                                                                  2965  56
+                                                                    134 45
+                                                                     Average row accuracy = 0.616430
+                                                                      Precision = 0.445545
+                                                                       Recall = 0.251397
+                                                                        F1 = 0.321429
+                                                                        E0221 15:58:36.457516 13607
+                                                                        worker.cc:120] Done testing steps =
+                                                                        100
+                                                                        E0221 15:58:36.684267 13607
+                                                                        worker.cc:324] Train @ step 800  Loss
+                                                                        = 0.189498, accuracy = 0.939375
+                                                                        E0221 15:58:47.907625 13607
+                                                                        worker.cc:324] Train @ step 850  Loss
+                                                                        = 0.208821, accuracy = 0.936875
+                                                                        E0221 15:58:58.780223 13607
+                                                                        worker.cc:87] Test @ step 900
+                                                                        E0221 15:58:58.780318 13607
+                                                                        worker.cc:116] Testing steps = 100
+                                                                        E0221 15:59:10.536176 13607
+                                                                        worker.cc:324]    Loss = 0.168335,
+                                                                        accuracy = 0.950625
+                                                                        Confusion matrix: [true
+                                                                        labels][predicted]
+                                                                          3023  0
+                                                                            158 19
+                                                                             Average row accuracy = 0.553672
+                                                                              Precision = 1.000000
+                                                                               Recall = 0.107345
+                                                                                F1 = 0.193878
+                                                                                E0221 15:59:10.536293 13607
+                                                                                worker.cc:120] Done testing
+                                                                                steps = 100
+                                                                                E0221 15:59:10.756659 13607
+                                                                                worker.cc:324] Train @ step
+                                                                                900  Loss = 0.183871, accuracy
+                                                                                = 0.951250
+                                                                                E0221 15:59:21.868244 13607
+                                                                                worker.cc:324] Train @ step
+                                                                                950  Loss = 0.164592, accuracy
+                                                                                = 0.950625
+                                                                                E0221 15:59:32.804937 13607
+                                                                                worker.cc:87] Test @ step 1000
+                                                                                E0221 15:59:32.805033 13607
+                                                                                worker.cc:116] Testing steps =
+                                                                                100
+                                                                                E0221 15:59:44.629245 13607
+                                                                                worker.cc:324]    Loss =
+                                                                                0.170874, accuracy = 0.947500
+                                                                                Confusion matrix: [true
+                                                                                labels][predicted]
+                                                                                  3013  9
+                                                                                    159 19
+                                                                                     Average row accuracy =
+                                                                                     0.551882
+                                                                                      Precision = 0.678571
+                                                                                       Recall = 0.106742
+                                                                                        F1 = 0.184466
+                                                                                        E0221 15:59:44.629360
+                                                                                        13607 worker.cc:120]
+                                                                                        Done testing steps =
+                                                                                        100
+                                                                                        E0221 15:59:44.853206
+                                                                                        13607 worker.cc:324]
+                                                                                        Train @ step 1000
+                                                                                        Loss = 0.166760,
+                                                                                        accuracy = 0.950000
+                                                                                        E0221 15:59:55.999681
+                                                                                        13607 worker.cc:324]
+                                                                                        Train @ step 1050
+                                                                                        Loss = 0.184559,
+                                                                                        accuracy = 0.944375
+                                                                                        E0221 16:00:06.986521
+                                                                                        13607 worker.cc:87]
+                                                                                        Test @ step 1100
+                                                                                        E0221 16:00:06.986618
+                                                                                        13607 worker.cc:116]
+                                                                                        Testing steps = 100
+                                                                                        E0221 16:00:18.954938
+                                                                                        13607 worker.cc:324]
+                                                                                        Loss = 0.160462,
+                                                                                        accuracy = 0.952187
+                                                                                        Confusion matrix:
+                                                                                        [true
+                                                                                        labels][predicted]
+                                                                                          3018  8
+                                                                                            145 29
+                                                                                             Average row
+                                                                                             accuracy =
+                                                                                             0.582011
+                                                                                              Precision =
+                                                                                              0.783784
+                                                                                               Recall =
+                                                                                               0.166667
+                                                                                                F1 = 0.274882
+                                                                                                E0221
+                                                                                                16:00:18.955062
+                                                                                                13607
+                                                                                                worker.cc:120]
+                                                                                                Done testing
+                                                                                                steps = 100
+                                                                                                E0221
+                                                                                                16:00:19.179361
+                                                                                                13607
+                                                                                                worker.cc:324]
+                                                                                                Train @ step
+                                                                                                1100  Loss =
+                                                                                                0.186230,
+                                                                                                accuracy =
+                                                                                                0.939375
+                                                                                                E0221
+                                                                                                16:00:30.449893
+                                                                                                13607
+                                                                                                worker.cc:324]
+                                                                                                Train @ step
+                                                                                                1150  Loss =
+                                                                                                0.154504,
+                                                                                                accuracy =
+                                                                                                0.955625
+                                                                                                E0221
+                                                                                                16:00:41.415400
+                                                                                                13607
+                                                                                                worker.cc:112]
+                                                                                                Worker (group
+                                                                                                = 0, id = 0)
+                                                                                                stops
+                                                                                                E0221
+                                                                                                16:00:41.512893
+                                                                                                13576
+                                                                                                stub.cc:181]
+                                                                                                Stub in
+                                                                                                process 0
+                                                                                                stops
+                                                                                                E0221
+                                                                                                16:00:42.512943
+                                                                                                13606
+                                                                                                server.cc:135]
+                                                                                                Server (group
+                                                                                                = 0, id = 0)
+                                                                                                stops

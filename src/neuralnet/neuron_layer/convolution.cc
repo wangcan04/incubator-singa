@@ -147,7 +147,7 @@ void ConvolutionLayer::ComputeGradient(int flag,
 void CConvolutionLayer::ComputeFeature(int flag,
     const vector<Layer*>& srclayers) {
   auto src = Tensor3(srclayers[0]->mutable_data(this));
-  //clee auto src = Tensor4(srclayers[0]->mutable_data(this));
+  //auto src = Tensor4(srclayers[0]->mutable_data(this));
   auto data = Tensor3(&data_);
   auto col = Tensor2(&col_data_);
   auto weight = Tensor2(weight_->mutable_data());

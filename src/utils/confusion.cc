@@ -42,6 +42,19 @@ void ConfusionMatrix::Add(int target, int predict){
   matrix_[target][predict]++; 
 }
 
+double ConfusionMatrix::precision(){
+  int count = matrix_[1][1]+matrix_[0][1];
+  if (nclasses_==2 && count>0)
+    return 1.0*matrix_[1][1]/(count);
+  return 1; 
+}
+double ConfusionMatrix::recall(){
+  int count = matrix_[1][1]+matrix_[1][0];
+  if (nclasses_==2 && count > 0)
+    return 1.0*matrix_[1][1]/(count);
+  return 1; 
+}
+
 string ConfusionMatrix::ToString(){
   string output = "Confusion matrix: [true labels][predicted]";
   double row_valids = 0.0; 

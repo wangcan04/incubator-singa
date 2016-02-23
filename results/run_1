@@ -1,0 +1,84 @@
+Unique JOB_ID is 11
+Record job information to /tmp/singa-log/job-info/job-11-20160221-100915
+Executing : ./singa -singa_conf /home/dinhtta/antivirus/incubator-singa/conf/singa.conf -singa_job 11 -conf /home/dinhtta/antivirus/incubator-singa/examples/anh/job.conf
+E0221 10:09:15.460664 12007 cluster.cc:50] proc #0 -> 0.0.0.0:49152 (pid = 12007)
+E0221 10:09:15.462368 12037 server.cc:62] Server (group = 0, id = 0) start
+E0221 10:09:15.463975 12038 worker.cc:68] Worker (group = 0, id = 0)  start on CPU
+E0221 10:09:16.476450 12038 worker.cc:87] Test @ step 0
+E0221 10:09:16.476500 12038 worker.cc:116] Testing steps = 100
+E0221 10:10:14.370394 12038 worker.cc:324]    Loss = 0.694807, accuracy = 0.223125
+Confusion matrix: [true labels][predicted]
+	564	2458
+	28	150
+ Average row accuracy = 0.514664
+ Precision = 0.057515
+ Recall = 0.842697
+ F1 = 0.107681
+E0221 10:10:14.370455 12038 worker.cc:120] Done testing steps = 100
+E0221 10:10:15.980306 12038 worker.cc:324] Train @ step 0  Loss = 0.694547, accuracy = 0.250000
+E0221 10:11:25.653789 12038 worker.cc:324] Train @ step 50  Loss = 0.500472, accuracy = 0.913125
+E0221 10:12:31.179250 12038 worker.cc:324] Train @ step 100  Loss = 0.249301, accuracy = 0.930625
+E0221 10:13:38.487740 12038 worker.cc:324] Train @ step 150  Loss = 0.258995, accuracy = 0.925625
+E0221 10:14:46.137967 12038 worker.cc:87] Test @ step 200
+E0221 10:14:46.138100 12038 worker.cc:116] Testing steps = 100
+E0221 10:15:48.301447 12038 worker.cc:324]    Loss = 0.198771, accuracy = 0.945625
+Confusion matrix: [true labels][predicted]
+	3026	0
+	174	0
+ Average row accuracy = 0.500000
+ Precision = -nan
+ Recall = 0.000000
+ F1 = -nan
+E0221 10:15:48.301543 12038 worker.cc:120] Done testing steps = 100
+E0221 10:15:49.676683 12038 worker.cc:324] Train @ step 200  Loss = 0.201646, accuracy = 0.947500
+E0221 10:16:59.014996 12038 worker.cc:324] Train @ step 250  Loss = 0.215462, accuracy = 0.936875
+E0221 10:18:08.736250 12038 worker.cc:324] Train @ step 300  Loss = 0.181498, accuracy = 0.950000
+E0221 10:19:18.717216 12038 worker.cc:324] Train @ step 350  Loss = 0.180706, accuracy = 0.947500
+E0221 10:20:27.224990 12038 worker.cc:87] Test @ step 400
+E0221 10:20:27.225138 12038 worker.cc:116] Testing steps = 100
+E0221 10:21:30.132045 12038 worker.cc:324]    Loss = 0.143705, accuracy = 0.960938
+Confusion matrix: [true labels][predicted]
+	3019	1
+	124	56
+ Average row accuracy = 0.655390
+ Precision = 0.982456
+ Recall = 0.311111
+ F1 = 0.472574
+E0221 10:21:30.132138 12038 worker.cc:120] Done testing steps = 100
+E0221 10:21:31.517496 12038 worker.cc:324] Train @ step 400  Loss = 0.162070, accuracy = 0.955625
+E0221 10:22:41.663398 12038 worker.cc:324] Train @ step 450  Loss = 0.153464, accuracy = 0.952500
+E0221 10:23:51.659564 12038 worker.cc:324] Train @ step 500  Loss = 0.201983, accuracy = 0.946250
+E0221 10:25:02.600040 12038 worker.cc:324] Train @ step 550  Loss = 0.269651, accuracy = 0.928750
+E0221 10:26:12.212855 12038 worker.cc:87] Test @ step 600
+E0221 10:26:12.212997 12038 worker.cc:116] Testing steps = 100
+E0221 10:27:15.984277 12038 worker.cc:324]    Loss = 0.206536, accuracy = 0.945625
+Confusion matrix: [true labels][predicted]
+	3026	0
+	174	0
+ Average row accuracy = 0.500000
+ Precision = -nan
+ Recall = 0.000000
+ F1 = -nan
+E0221 10:27:15.984372 12038 worker.cc:120] Done testing steps = 100
+E0221 10:27:17.384742 12038 worker.cc:324] Train @ step 600  Loss = 0.220706, accuracy = 0.940000
+E0221 10:28:29.680855 12038 worker.cc:324] Train @ step 650  Loss = 0.185402, accuracy = 0.949375
+E0221 10:29:42.250535 12038 worker.cc:324] Train @ step 700  Loss = 0.163174, accuracy = 0.951875
+E0221 10:30:53.561234 12038 worker.cc:324] Train @ step 750  Loss = 0.142331, accuracy = 0.957500
+E0221 10:32:04.243576 12038 worker.cc:87] Test @ step 800
+E0221 10:32:04.243715 12038 worker.cc:116] Testing steps = 100
+E0221 10:33:09.955124 12038 worker.cc:324]    Loss = 0.134849, accuracy = 0.959687
+Confusion matrix: [true labels][predicted]
+	3004	20
+	109	67
+ Average row accuracy = 0.687034
+ Precision = 0.770115
+ Recall = 0.380682
+ F1 = 0.509506
+E0221 10:33:09.955267 12038 worker.cc:120] Done testing steps = 100
+E0221 10:33:11.407079 12038 worker.cc:324] Train @ step 800  Loss = 0.116823, accuracy = 0.966875
+E0221 10:34:22.838012 12038 worker.cc:324] Train @ step 850  Loss = 0.159209, accuracy = 0.951875
+E0221 10:35:34.447660 12038 worker.cc:324] Train @ step 900  Loss = 0.155037, accuracy = 0.952500
+E0221 10:36:45.643112 12038 worker.cc:324] Train @ step 950  Loss = 0.192297, accuracy = 0.942500
+E0221 10:37:54.915294 12038 worker.cc:112] Worker (group = 0, id = 0) stops
+E0221 10:37:55.011744 12007 stub.cc:181] Stub in process 0 stops
+E0221 10:37:56.011801 12037 server.cc:135] Server (group = 0, id = 0) stops

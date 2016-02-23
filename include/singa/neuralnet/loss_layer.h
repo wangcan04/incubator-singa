@@ -62,6 +62,7 @@ class SoftmaxLossLayer : public LossLayer {
   int batchsize_, topk_, dim_, counter_ = 0;
   float scale_;
   float loss_ = 0.0f, accuracy_ = 0.0f;
+  float current_precision_ = 1.0f, current_recall_ = 1.0f; 
   ConfusionMatrix *confusion_; 
 };
 

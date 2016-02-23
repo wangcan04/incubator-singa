@@ -27,8 +27,8 @@ from singa.model import *
 def load_data(
          workspace = None,
          backend = 'kvfile',
-         batchsize = 32,
-         random = 0,
+         batchsize = 2,
+         random = 5000,
          shape = (1, 50000),
          std = 127.5,
          mean = 127.5

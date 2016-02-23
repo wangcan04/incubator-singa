@@ -48,6 +48,10 @@ class ConfusionMatrix{
     // Clear out the content
     void Reset(); 
 
+    double precision(); 
+
+    double recall(); 
+
     // Print out the content
     string ToString();  
 

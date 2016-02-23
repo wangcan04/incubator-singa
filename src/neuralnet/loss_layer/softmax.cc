@@ -80,7 +80,6 @@ void SoftmaxLossLayer::ComputeFeature(int flag,
       }
     }
     confusion_->Add (label[n], probvec[0].second);
-    
     probptr += dim_;
   }
   CHECK_EQ(probptr, prob.dptr + prob.shape.Size());
@@ -102,6 +101,7 @@ void SoftmaxLossLayer::ComputeGradient(int flag,
   Tensor<cpu, 1> gsrc(gsrcptr, Shape1(gsrcblob->count()));
   gsrc *= scale_ / (1.0f * batchsize_);
 }
+
 const std::string SoftmaxLossLayer::ToString(bool debug, int flag) {
   if (debug)
     return Layer::ToString(debug, flag);
