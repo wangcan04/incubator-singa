@@ -17,6 +17,8 @@ TRUNCATE_SIZE=50000
 SPLIT_RATIO=0.9
 CACHE_FILE='.cache_list'
 
+OVERSAMPLING_RATE=10 # oversampling the virus class
+
 # load cached list of test and train file
 def load_cache():
   f = open(os.path.join(PREFIX, '.train_files_cache'), 'rb')
@@ -104,6 +106,11 @@ def create_code_sets():
         for section in pe.sections:
           if (section.Name.startswith('.text') and section.SizeOfRawData>=TRUNCATE_SIZE):
            code_samples.append((sample[3], sample[1]))
+           '''
+           if (sample[1]==1): #oversampling
+            for dup in range(OVERSAMPLING_RATE):
+              code_samples.append((sample[3], sample[1]))
+           '''
            break
       except:
         pass
@@ -111,37 +118,60 @@ def create_code_sets():
     f.close()
 
     
-  print('exit... len = %d' %(len(code_samples)))
   permu = np.random.permutation(len(code_samples))
   split_idx = len(code_samples)*SPLIT_RATIO
+
+  permuted_list = [code_samples[permu[x]] for x in range(len(code_samples))]
+  # oversample positive samples at each list
+  train_list = []
+  test_list = []
+  for idx,sample in enumerate(permuted_list):
+    if (idx<split_idx):
+      train_list.append(sample)
+      if (sample[1]==1):
+        for dup in range(OVERSAMPLING_RATE):
+          train_list.append(sample)
+    else:
+      test_list.append(sample)
+      if (sample[1]==1):
+        for dup in range(OVERSAMPLING_RATE):
+          test_list.append(sample)
+
+  permu_train = np.random.permutation(len(train_list))
+  permu_test = np.random.permutation(len(test_list))
+  print ('train list len = %d, test list len = %d' % (len(train_list), len(test_list)))
 
   trainStore = kvstore.FileStore()
   trainStore.open(TRAIN_FILE_CODE, "create")
   testStore = kvstore.FileStore()
   testStore.open(TEST_FILE_CODE, "create")
 
-  tenpc=len(code_samples)/10
+  tenpc=len(train_list)/10
   count=0
-  print('split idx = %d' % (split_idx))
-  for idx,sample in enumerate(code_samples):
-    if (idx<split_idx):
-      trainRecord = RecordProto()
-      trainRecord.label = code_samples[permu[idx]][1]
-      content =  get_text_segment(os.path.join(PREFIX, code_samples[permu[idx]][0]))
-      if (content != None):
-        trainRecord.pixel = content
-        value = trainRecord.SerializeToString()
-        key = "%d" %idx
-        trainStore.write(key,value)
-    else:
-      testRecord = RecordProto()
-      testRecord.label = code_samples[permu[idx]][1]
-      content = get_text_segment(os.path.join(PREFIX, code_samples[permu[idx]][0]))
-      if (testRecord.pixel != None):
-        testRecord.pixel = content
-        value = testRecord.SerializeToString()
-        key = "%d" %idx
-        testStore.write(key,value)
+  for idx in range(len(train_list)):
+    trainRecord = RecordProto()
+    trainRecord.label = train_list[permu_train[idx]][1]
+    content =  get_text_segment(os.path.join(PREFIX, train_list[permu_train[idx]][0]))
+    if (content != None):
+      trainRecord.pixel = content
+      value = trainRecord.SerializeToString()
+      key = "%d" %idx
+      trainStore.write(key,value)
+    if (idx % tenpc==0):      
+      print (count)
+      count = count + 1
+
+  tenpc=len(test_list)/10
+  count=0
+  for idx in range(len(test_list)): 
+    testRecord = RecordProto()
+    testRecord.label = test_list[permu_test[idx]][1]
+    content = get_text_segment(os.path.join(PREFIX, test_list[permu_test[idx]][0]))
+    if (testRecord.pixel != None):
+      testRecord.pixel = content
+      value = testRecord.SerializeToString()
+      key = "%d" %idx
+      testStore.write(key,value)
     if (idx % tenpc==0):      
       print (count)
       count = count + 1
