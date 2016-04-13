@@ -105,6 +105,7 @@ void Driver::Init(int argc, char **argv) {
   RegisterLayer<EuclideanLossLayer, int>(kEuclideanLoss);
   RegisterLayer<InnerProductLayer, int>(kInnerProduct);
   RegisterLayer<LabelLayer, int>(kLabel);
+  RegisterLayer<LineXLossLayer, int>(kLineXLoss);
   RegisterLayer<LRNLayer, int>(kLRN);
   RegisterLayer<MnistLayer, int>(kMnist);
   RegisterLayer<PrefetchLayer, int>(kPrefetch);

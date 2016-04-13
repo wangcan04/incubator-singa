@@ -29,8 +29,24 @@
 
 namespace singa {
 using std::vector;
-class ConfusionMatrix; 
+class ConfusionMatrix;
 
+/**
+ * Linear Exponential Loss for binary classification
+ */
+class LineXLossLayer : public LossLayer {
+ public:
+   void Setup(const LayerProto& conf, const vector<Layer*>& srclayers) override;
+  void ComputeFeature(int flag, const vector<Layer*>& srclayers) override;
+  void ComputeGradient(int flag, const vector<Layer*>& srclayers) override;
+  const std::string ToString(bool debug, int flag) override;
+
+ private:
+  int batchsize_, counter_ = 0;
+  float loss_ = 0, accuracy_ = 0;
+  float alpha_;
+  ConfusionMatrix *confusion_;
+};
 /**
  * Squared Euclidean loss as @f$0.5 ||p - t||^2@f$, where p is prediction
  * result, t is the ground truth.
@@ -62,8 +78,8 @@ class SoftmaxLossLayer : public LossLayer {
   int batchsize_, topk_, dim_, counter_ = 0;
   float scale_;
   float loss_ = 0.0f, accuracy_ = 0.0f;
-  float current_precision_ = 1.0f, current_recall_ = 1.0f; 
-  ConfusionMatrix *confusion_; 
+  float current_precision_ = 1.0f, current_recall_ = 1.0f;
+  ConfusionMatrix *confusion_;
 };
 
 #ifdef USE_CUDNN

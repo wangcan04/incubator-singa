@@ -243,6 +243,7 @@ message LayerProto {
   optional SoftmaxProto softmax_conf = 214;
   optional GRUProto gru_conf = 215;
   optional EmbeddingProto embedding_conf = 216;
+  optional LineXProto linex_conf = 217;
 
   // configuration for loss layers, id range [300, 400)
   optional SoftmaxLossProto softmaxloss_conf = 301;
@@ -551,6 +552,9 @@ message SliceProto {
   optional int32 num_slices = 2 [default = 1];
 }
 
+message LineXProto {
+  optional float alpha = 1 [default = 1];
+}
 message SoftmaxProto {
   // Can be used to do softmax over each channel of one image by setting it to
   // be the size of the second dimension (the first dimension is batchsize).
@@ -673,6 +677,7 @@ enum LayerType {
    */
   kEuclideanLoss = 300;
   kSoftmaxLoss = 301;
+  kLineXLoss = 302;
   // cudnn v3
   kCudnnSoftmaxLoss = 350;
 
