@@ -50,11 +50,12 @@ void LineXLossLayer::ComputeFeature(int flag,
     int ilabel = static_cast<int>(label[n]);
     //  CHECK_LT(ilabel,10);
     CHECK_GE(ilabel, 0);
-    if (score[n] * (ilabel * 2 -1) >= 0) {
-      precision++;
+    if (ilabel == 0 && score[n] >= 0) {
+      loss += exp(score[n] + 1) - score[n] -2;
+    } else if (ilabel == 1 && score[n] <= 0) {
+      loss += - score[n] + exp(score[n] - 1);
     } else {
-      float w = -alpha_ * score[n]; // penalize false positive
-      loss += exp(w) - w - 1;
+      precision++;
     }
     confusion_->Add(ilabel, score[n]>=0);
   }
@@ -70,10 +71,13 @@ void LineXLossLayer::ComputeGradient(int flag,
   float* gscore = srclayers[0]->mutable_grad(this)->mutable_cpu_data();
   for (int n = 0; n < batchsize_; n++) {
     int ilabel = static_cast<int>(label[n]);
-    if (score[n] * (ilabel * 2 -1) < 0)
-      gscore[n] = (alpha_ - alpha_ * exp(-alpha_ * score[n])) / batchsize_;
-    else
+    if (score[n] * (ilabel * 2 -1) > 1) {
       gscore[n] = 0;
+    } else if (ilabel == 0) {
+      gscore[n] = (exp(score[n]+1) -1)/batchsize_;
+    } else {
+      gscore[n] = (exp(score[n]-1) -1)/batchsize_;
+    }
   }
 }
 

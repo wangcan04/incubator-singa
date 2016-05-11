@@ -89,6 +89,8 @@ message JobProto {
   optional int32 test_after = 82 [default = 0];
   // start validation after this num steps
   optional int32 validate_after = 83 [default = 0];
+  // seed
+  optional int32 seed = 84 [default = 0];
 
   // for internal use
   // users typically do not touch following fields

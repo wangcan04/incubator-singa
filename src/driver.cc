@@ -247,7 +247,7 @@ void Driver::Train(const JobProto& job_conf) {
     if (gpu < job_conf.gpu_size()) {
       device_id = job_conf.gpu(gpu++);
     }
-    context->SetupDevice(threads.back().get_id(), device_id);
+    context->SetupDevice(threads.back().get_id(), device_id, job_conf.seed());
   }
   if (grp_size > 1 || nserver_grps > 0) {
     int nservers_per_grp = cluster->nservers_per_group();

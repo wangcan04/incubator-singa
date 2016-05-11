@@ -33,6 +33,9 @@ class ConfusionMatrix;
 
 /**
  * Linear Exponential Loss for binary classification
+ *               e^(y+1) - y -2  if t = 0, y>-1
+ * loss(t, y) =  -y+e^(y-1)     if t = 1, y<1
+ *               0               else
  */
 class LineXLossLayer : public LossLayer {
  public:

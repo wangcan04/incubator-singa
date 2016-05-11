@@ -118,12 +118,12 @@ void CPoolingLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   if (pool_ == PoolingProto_PoolMethod_MAX)
     ForwardMaxPooling(srclayers[0]->mutable_data(this)->mutable_cpu_data(),
         batchsize_, channels_, height_, width_, kernel_y_, kernel_x_,
-        pad_y_, pad_y_, stride_y_, stride_x_,
+        pad_y_, pad_x_, stride_y_, stride_x_,
         data_.mutable_cpu_data(), mask_.mutable_cpu_data());
   else if (pool_ == PoolingProto_PoolMethod_AVG)
     ForwardAvgPooling(srclayers[0]->mutable_data(this)->mutable_cpu_data(),
         batchsize_, channels_, height_, width_, kernel_y_, kernel_x_,
-        pad_y_, pad_x_, stride_y_, stride_y_, data_.mutable_cpu_data());
+        pad_y_, pad_x_, stride_y_, stride_x_, data_.mutable_cpu_data());
   else
     LOG(FATAL) << "unknow pooling method";
 }
@@ -132,7 +132,7 @@ void CPoolingLayer::ComputeGradient(int flag, const vector<Layer*>& srclayers) {
   if (pool_ == PoolingProto_PoolMethod_MAX)
     BackwardMaxPooling(grad_.cpu_data(), mask_.cpu_data(), batchsize_,
         channels_, height_, width_, kernel_y_, kernel_x_, pad_y_, pad_x_,
-        stride_y_, stride_y_,
+        stride_y_, stride_x_,
         srclayers[0]->mutable_grad(this)->mutable_cpu_data());
   else if (pool_ == PoolingProto_PoolMethod_AVG)
     BackwardAvgPooling(grad_.cpu_data(), batchsize_,
