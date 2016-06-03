@@ -34,6 +34,10 @@
 namespace singa {
 
 using std::string;
+using ms = std::chrono::microseconds;
+using mms = std::chrono::milliseconds;
+using get_time = std::chrono::steady_clock;
+ms fp_time, bp_time;
 
 Worker* Worker::CreateWorker(const string str) {
   AlgProto alg_proto;
@@ -67,6 +71,28 @@ Worker::~Worker() {
   if (bridge_dealer_) delete bridge_dealer_;
 }
 
+void FeedData(const vector<Layer*>& layers) {
+  std::uniform_real_distribution<float> dis(0, 1);
+  auto gen = Singleton<Context>::Instance()->rand_generator();
+
+  for (auto *layer : layers) {
+    if (layer->name().find("data") != string::npos) {
+      vector<float> data;
+      for (int i = 0; i< layer->data(nullptr).count(); i++) {
+          data.push_back(dis(*gen));
+      }
+      dynamic_cast<DummyLayer*>(layer)->Feed(0, data, vector<int>{});
+    }
+    if (layer->name().find("label") != string::npos) {
+      vector<int> aux;
+      for (int i = 0; i< layer->data(nullptr).count(); i++) {
+        aux.push_back(1);
+      }
+      dynamic_cast<DummyLayer*>(layer)->Feed(0, vector<float>{}, aux);
+    }
+  }
+}
+
 void Worker::Run() {
   // setup gpu device
   auto context = Singleton<Context>::Instance();
@@ -87,6 +113,8 @@ void Worker::Run() {
   step_ = job_conf_.step();
   InitSockets(train_net_);
   InitNetParams(job_conf_, train_net_);
+  FeedData(train_net_->layers());
+  auto start_tick = get_time::now();
   while (!StopNow(step_)) {
     if (ValidateNow(step_) && val_net_ != nullptr) {
       CollectAll(step_, train_net_);
@@ -103,6 +131,8 @@ void Worker::Run() {
       Checkpoint(step_, Cluster::Get()->checkpoint_folder(), train_net_);
       job_conf_.set_step(step_);
     }
+    if (step_ == 5)
+      start_tick = get_time::now();
     TrainOneBatch(step_, train_net_);
     if (DisplayNow(step_) && grp_id_ == 0 && id_ == 0) {
       Display(kTrain | kForward | kBackward,
@@ -110,6 +140,9 @@ void Worker::Run() {
     }
     step_++;
   }
+  int count = step_ - 5;
+  LOG(ERROR) << "Time per iteration "
+        << std::chrono::duration_cast<ms>(get_time::now() - start_tick).count() / count << " ms";
 
   // save the model
   if (grp_id_ == 0)
@@ -309,6 +342,7 @@ int Worker::Get(int step, Param* param) {
 }
 
 int Worker::Update(int step, Param* param) {
+//  return 1;
   param->set_last_version(param->version());
   if (dealer_ == nullptr) {
     LOG(WARNING) << "Null dealer in worker (" << grp_id_ << ", " << id_ << ")";
@@ -346,6 +380,7 @@ int Worker::CollectAll(int step, NeuralNet* net) {
 }
 
 int Worker::Collect(int step, Param* param) {
+//  return 1;
   while (param->version() <= param->last_version()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(kCollectSleepTime));
     // LOG(ERROR) << "wait  "<< param->id() << " at " << step << " by " <<id_;
@@ -377,6 +412,8 @@ void BPWorker::Forward(int step, Phase phase, NeuralNet* net) {
   map<string, string> label;
   for (auto& layer : net->layers()) {
     if (layer->partition_id() == id_) {
+      if (layer->name().find("data") != string::npos || layer->name().find("label") != string::npos)
+        continue;
       if (phase == kTrain && layer->unroll_index() == 0) {
         // wait until param is updated
         for (Param* p : layer->GetParams()) {

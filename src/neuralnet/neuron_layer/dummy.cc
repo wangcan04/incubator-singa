@@ -52,6 +52,8 @@ void DummyLayer::Setup(const LayerProto& proto,
   if (proto.dummy_conf().output()) {  // use as output layer
     output_ = true;
   }
+  batchsize_ = data_.shape(0);
+  dim_ = data_.count() / batchsize_;
 }
 
 void DummyLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
@@ -78,14 +80,14 @@ void DummyLayer::ComputeGradient(int flag, const vector<Layer*>& srclayers) {
     Copy(grad_, srclayers[0]->mutable_grad(this));
 }
 
-void DummyLayer::Feed(int batchsize, vector<float>& data, vector<int>& aux_data){
+void DummyLayer::Feed(int batchsize, const vector<float>& data, const vector<int>& aux_data){
 
-    batchsize_ = batchsize;
+//    batchsize_ = batchsize;
     // input data
     if (data.size() > 0) {
       int size = data.size();
       float* ptr = data_.mutable_cpu_data();
-      for (int i = 0; i< size; i++) { 
+      for (int i = 0; i< size; i++) {
           ptr[i] = data.at(i);
       }
     }
