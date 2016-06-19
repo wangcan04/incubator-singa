@@ -37,7 +37,7 @@ using std::string;
 using ms = std::chrono::microseconds;
 using mms = std::chrono::milliseconds;
 using get_time = std::chrono::steady_clock;
-ms fp_time, bp_time;
+vector<ms> fp_time(20, ms(0)), bp_time(20, ms(0));
 
 Worker* Worker::CreateWorker(const string str) {
   AlgProto alg_proto;
@@ -143,6 +143,14 @@ void Worker::Run() {
   int count = step_ - 5;
   LOG(ERROR) << "Time per iteration "
         << std::chrono::duration_cast<ms>(get_time::now() - start_tick).count() / count << " ms";
+  for (int i = 0; i < train_net_->layers().size(); i++)
+    LOG(ERROR) << " fp " << train_net_->layers().at(i)->name() << ", time = "
+        << std::chrono::duration_cast<ms>(fp_time.at(i)).count() / (step_- 5) << " ms";
+
+  for (int i = 0; i < train_net_->layers().size(); i++)
+    LOG(ERROR) << " bp " << train_net_->layers().at(i)->name() << ", time = "
+        << std::chrono::duration_cast<ms>(bp_time.at(i)).count() / (step_- 5) << " ms";
+
 
   // save the model
   if (grp_id_ == 0)
@@ -342,7 +350,6 @@ int Worker::Get(int step, Param* param) {
 }
 
 int Worker::Update(int step, Param* param) {
-//  return 1;
   param->set_last_version(param->version());
   if (dealer_ == nullptr) {
     LOG(WARNING) << "Null dealer in worker (" << grp_id_ << ", " << id_ << ")";
@@ -380,7 +387,6 @@ int Worker::CollectAll(int step, NeuralNet* net) {
 }
 
 int Worker::Collect(int step, Param* param) {
-//  return 1;
   while (param->version() <= param->last_version()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(kCollectSleepTime));
     // LOG(ERROR) << "wait  "<< param->id() << " at " << step << " by " <<id_;
@@ -410,7 +416,10 @@ void BPWorker::TestOneBatch(int step, Phase phase, NeuralNet* net) {
 
 void BPWorker::Forward(int step, Phase phase, NeuralNet* net) {
   map<string, string> label;
+  int idx = 0;
   for (auto& layer : net->layers()) {
+    idx++;
+    auto start_tick = get_time::now();
     if (layer->partition_id() == id_) {
       if (layer->name().find("data") != string::npos || layer->name().find("label") != string::npos)
         continue;
@@ -425,6 +434,8 @@ void BPWorker::Forward(int step, Phase phase, NeuralNet* net) {
       if (job_conf_.debug() && DisplayNow(step) && grp_id_ == 0)
         label[layer->name()] = layer->ToString(true, phase | kForward);
     }
+    if (step >= 5)
+      fp_time[idx-1] += std::chrono::duration_cast<ms>(get_time::now() - start_tick);
   }
   if (label.size()) {
     const string path = Cluster::Get()->vis_folder() + "/fp-step"
@@ -436,8 +447,11 @@ void BPWorker::Forward(int step, Phase phase, NeuralNet* net) {
 void BPWorker::Backward(int step, NeuralNet* net) {
   map<string, string> label;
   auto& layers = net->layers();
+  int idx = layers.size();
   for (auto it = layers.rbegin(); it != layers.rend(); it++) {
+    idx--;
     Layer* layer = *it;
+    auto start_tick = get_time::now();
     if (layer->partition_id() == id_) {
       layer->ComputeGradient(kTrain | kBackward, net->srclayers(layer));
       if (job_conf_.debug() && DisplayNow(step) && grp_id_ == 0)
@@ -445,6 +459,8 @@ void BPWorker::Backward(int step, NeuralNet* net) {
       for (Param* p : layer->GetParams())
         Update(step, p);
     }
+    if (step >= 5)
+      bp_time[idx] += std::chrono::duration_cast<ms>(get_time::now() - start_tick);
   }
   if (label.size()) {
     const string path = Cluster::Get()->vis_folder() + "/bp-step"

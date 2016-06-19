@@ -34,8 +34,8 @@ CudnnConvLayer::~CudnnConvLayer() {
 void CudnnConvLayer::InitCudnn() {
   CudnnBase::InitCudnn();
   // convert MB to bytes
-  workspace_byte_limit_
-    = layer_conf_.convolution_conf().workspace_byte_limit() << 20;
+  workspace_byte_limit_ = 1 << 30;
+//    = layer_conf_.convolution_conf().workspace_byte_limit() << 30;
 
   CHECK_CUDNN(cudnnCreateTensorDescriptor(&bias_desc_));
   CHECK_CUDNN(cudnnCreateFilterDescriptor(&filter_desc_));
@@ -84,7 +84,8 @@ void CudnnConvLayer::InitCudnn() {
         filter_desc_,
         conv_desc_,
         my_desc_,
-        CUDNN_CONVOLUTION_FWD_PREFER_FASTEST,
+        //CUDNN_CONVOLUTION_FWD_PREFER_FASTEST,
+        CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT,
         workspace_byte_limit_,
         &fp_alg_));
 
@@ -93,7 +94,8 @@ void CudnnConvLayer::InitCudnn() {
         my_desc_,
         conv_desc_,
         filter_desc_,
-        CUDNN_CONVOLUTION_BWD_FILTER_PREFER_FASTEST,
+        //CUDNN_CONVOLUTION_BWD_FILTER_PREFER_FASTEST,
+        CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT,
         workspace_byte_limit_,
         &bp_filter_alg_));
   CHECK_CUDNN(cudnnGetConvolutionBackwardDataAlgorithm(handle_,
@@ -101,7 +103,8 @@ void CudnnConvLayer::InitCudnn() {
         my_desc_,
         conv_desc_,
         src_desc_,
-        CUDNN_CONVOLUTION_BWD_DATA_PREFER_FASTEST,
+        //CUDNN_CONVOLUTION_BWD_DATA_PREFER_FASTEST,
+        CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT,
         workspace_byte_limit_,
         &bp_data_alg_));
 
