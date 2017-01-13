@@ -41,7 +41,6 @@ to avoid the conflicts of system path and virtual environment path.
 
 Currently, we have the following wheel files,
 
-```
 | OS           | Device | CUDA/CUDNN     | Link          |
 ----------------------------------------------------------
 | Ubuntu14.04  | CPU    | -              |[latest](http://comp.nus.edu.sg/~dbsystem/singa/assets/file/wheel/linux/latest/ubuntu14.04-cpp/), [history](http://www.comp.nus.edu.sg/~dbsystem/singa/assets/file/wheel/linux)|
@@ -51,7 +50,6 @@ Currently, we have the following wheel files,
 | Ubuntu16.04  | GPU    | CUDA8.0+CUDNN5 |[latest](http://www.comp.nus.edu.sg/~dbsystem/singa/assets/file/wheel/linux/latest/ubuntu16.04-cuda8.0-cudnn5/), [history](http://www.comp.nus.edu.sg/~dbsystem/singa/assets/file/wheel/linux)|
 | MacOSX10.11  | CPU    | -              |[latest](http://www.comp.nus.edu.sg/~dbsystem/singa/assets/file/wheel/macosx/latest/macosx10.11-cpp/), [history](http://www.comp.nus.edu.sg/~dbsystem/singa/assets/file/wheel/macosx)|
 | MacOSX10.12  | CPU    | -              |[latest](http://www.comp.nus.edu.sg/~dbsystem/singa/assets/file/wheel/macosx/latest/macosx10.12-cpp/), [history](http://www.comp.nus.edu.sg/~dbsystem/singa/assets/file/wheel/macosx)|
-```
 
 Download the whl file and execute the following command to install PySINGA,
 
