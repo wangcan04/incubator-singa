@@ -113,7 +113,7 @@ def main():
         # start to train
         agent = Agent(port)
 
-        net = model.create_net(args.parameter_file)
+        net = model.create_wide_resnet(args.parameter_file)
         dev = device.create_cuda_gpu()
         net.to_device(dev)
         print 'Finish loading models'
