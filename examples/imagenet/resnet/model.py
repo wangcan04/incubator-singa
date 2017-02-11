@@ -51,14 +51,13 @@ def bottleneck(name, net, inplane, midplane, outplane, stride=1, preact=False):
     return net.add(Activation(name + '-relu'))
 
 def basicblock(name, net, inplane, midplane, outplane, stride=1, preact=False):
-    assert midplane==outplane, 'midplan and outplane should be the same'
     split = net.add(Split(name + '-split', 2))
     if preact:
         net.add(BatchNormalization(name + '-preact-bn'), split)
         net.add(Activation(name + '-preact-relu'))
-    conv(net, name + '-1', outplane, 3, stride, 1, True, True, split)
-    br0 = conv(net, name + '-2', outplane, 3, 1, 1, True, False)
-    br1 = shortcut(net, name, inplane, outplane, stride, split)
+    conv(net, name + '-1', midplane, 3, stride, 1, True, True, split)
+    br0 = conv(net, name + '-2', midplane, 3, 1, 1, True, False)
+    br1 = shortcut(net, name, inplane, midplane, stride, split)
     net.add(Merge(name + '-add'), [br0, br1])
     return net.add(Activation(name + '-add-relu'))
 
@@ -89,32 +88,36 @@ def init_params(net, weight_path):
     else:
         net.load(weight_path, use_pickle = 'pickle' in weight_path)
 
-def create_resnet(weight_path=None, depth=50):
-    cfg = {
-            50: ([3, 4, 6, 3], bottleneck),
-            101: ([3, 4, 23, 3], bottleneck),
-            152: ([3, 8, 36, 3], bottleneck),
-            }
+
+cfg = { 18: [2, 2, 2, 2],  # basicblock
+        34: [3, 4, 6, 3],  # basicblock
+        50: [3, 4, 6, 3],  # bottleneck
+        101: [3, 4, 23, 3], # bottleneck
+        152: [3, 8, 36, 3]} # bottleneck
+
+
+def create_resnet(depth=50):
+    conf = cfg[depth]
+    block = basic
+    if depth > 34:
+        block = bottleneck
+
     net = ffnet.FeedForwardNet()
     net.add(Conv2D('input-conv', 64, 7, 2, pad=3, input_sample_shape=(3, 224, 224)))
     net.add(BatchNormalization('input-bn'))
     net.add(Activation('input_relu'))
     net.add(MaxPooling2D('input_pool', 3, 2, pad=1))
-
-    conf = cfg[depth]
-    stage(0, net, conf[0][0], 64, 64, 256, 1, conf[1])
-    stage(1, net, conf[0][1], 256, 128, 512, 2, conf[1])
-    stage(2, net, conf[0][2], 512, 256, 1024, 2, conf[1])
-    stage(3, net, conf[0][3], 1024, 512, 2048, 2, conf[1])
+    stage(0, net, conf[0], 64, 64, 256, 1, block)
+    stage(1, net, conf[1], 256, 128, 512, 2, block)
+    stage(2, net, conf[2], 512, 256, 1024, 2, block)
+    stage(3, net, conf[3], 1024, 512, 2048, 2, block)
     net.add(AvgPooling2D('avg', 7, 1))
     net.add(Flatten('flat'))
     net.add(Dense('dense', 1000))
-
-    init_params(net, weight_path)
     return net
 
 
-def create_wide_resnet(weight_path=None):
+def create_wide_resnet(depth=None):
     net = ffnet.FeedForwardNet()
     net.add(Conv2D('input-conv', 64, 7, 2, pad=3, use_bias=False, input_sample_shape=(3, 224, 224)))
     net.add(BatchNormalization('input-bn'))
@@ -129,9 +132,11 @@ def create_wide_resnet(weight_path=None):
     net.add(AvgPooling2D('avg_pool', 7, 1, pad=0))
     net.add(Flatten('flag'))
     net.add(Dense('dense', 1000))
-
-    init_params(net, weight_path)
     return net
+
+
+def create_net(name, depth):
+    pass
 
 
 if __name__ == '__main__':
