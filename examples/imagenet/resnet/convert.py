@@ -4,6 +4,8 @@ import numpy as np
 import cPickle as pickle
 from argparse import ArgumentParser
 
+'''Extract the net parameters from the torch file and store them as python dict
+using cPickle'''
 
 import model
 
@@ -31,15 +33,15 @@ def conv(m, idx, params, param_names):
 
 def batchnorm(m, idx, params, param_names):
     add_param(idx, param_names[idx], m['weight'], params)
-    add_param(idx, param_names[idx + 1], m['bias'], params)
-    add_param(idx, param_names[idx + 2], m['running_mean'], params)
-    add_param(idx, param_names[idx + 3], m['running_var'], params)
+    add_param(idx + 1, param_names[idx + 1], m['bias'], params)
+    add_param(idx + 2, param_names[idx + 2], m['running_mean'], params)
+    add_param(idx + 3, param_names[idx + 3], m['running_var'], params)
     return idx + 4
 
 
 def linear(m, idx, params, param_names):
     add_param(idx, param_names[idx], np.transpose(m['weight']), params)
-    add_param(idx, param_names[idx + 1], m['weight'], params)
+    add_param(idx + 1, param_names[idx + 1], m['bias'], params)
     return idx + 2
 
 
@@ -71,10 +73,12 @@ def traverse(m, idx, params, param_names):
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser(description='Convert params from torch to python dict')
+    parser = ArgumentParser(description='Convert params from torch to python '
+            'dict. \n resnet could have depth of 18, 34, 101, 152; \n
+            wrn has depth 50; preact has depth 200; addbn has depth 50')
     parser.add_argument("infile", help="torch checkpoint file")
-    parser.add_argument("model", choices = ['resnet', 'wrn', 'preact'])
-    parser.add_argument("depth", type=int, choices = [18, 34, 50, 101, 152])
+    parser.add_argument("model", choices = ['resnet', 'wrn', 'preact', 'addbn'])
+    parser.add_argument("depth", type=int, choices = [18, 34, 50, 101, 152, 200])
     args = parser.parse_args()
 
     net = model.create_net(args.model, args.depth)
@@ -84,9 +88,9 @@ if __name__ == '__main__':
     # params = net.param_values()
     param_names = net.param_names()
     traverse(m, 0, params, param_names)
-    if len(params) != len(param_names):
+    miss = [name for name in param_names if name not in params]
+    if len(miss) > 0:
         print 'The following params are missing from torch file'
-        miss = [name for name in param_names if name not in params]
         print miss
 
     outfile = os.path.splitext(args.infile)[0] + '.pickle'
