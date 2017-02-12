@@ -35,29 +35,29 @@ def conv(net, prefix, n, ksize, stride=1, pad=0, bn=True, relu=True, src=None):
     return ret
 
 
-def shortcut(net, prefix, inplane, outplane, stride, src):
+def shortcut(net, prefix, inplane, outplane, stride, src, bn=False):
     if inplane == outplane:
         return src
-    return conv(net, prefix + '-shortcut', outplane, 1, stride, 0, True, False, src)
+    return conv(net, prefix + '-shortcut', outplane, 1, stride, 0, bn, False, src)
 
 
-def bottleneck(name, net, inplane, midplane, outplane, stride=1, preact=False):
+def bottleneck(name, net, inplane, midplane, outplane, stride=1, shortcut_bn=True, preact=False):
     split = net.add(Split(name + '-split', 2))
-    conv(net, name + '-1', midplane, 1, 1, 0, True, True, src=split)
-    conv(net, name + '-2', midplane, 3, stride, 1, True, True)
-    br0 = conv(net, name + '-3', outplane, 1, 1, 0, True, False)
-    br1 = shortcut(net, name, inplane, outplane, stride, split)
+    conv(net, name + '-0', midplane, 1, 1, 0, True, True, src=split)
+    conv(net, name + '-1', midplane, 3, stride, 1, True, True)
+    br0 = conv(net, name + '-2', outplane, 1, 1, 0, True, False)
+    br1 = shortcut(net, name, inplane, outplane, stride, split, shortcut_bn)
     net.add(Merge(name + '-add'), [br0, br1])
     return net.add(Activation(name + '-relu'))
 
-def basicblock(name, net, inplane, midplane, outplane, stride=1, preact=False):
+def basicblock(name, net, inplane, midplane, outplane, stride=1, shortcut_bn=False, preact=False):
     split = net.add(Split(name + '-split', 2))
     if preact:
         net.add(BatchNormalization(name + '-preact-bn'), split)
         net.add(Activation(name + '-preact-relu'))
-    conv(net, name + '-1', midplane, 3, stride, 1, True, True, split)
-    br0 = conv(net, name + '-2', midplane, 3, 1, 1, True, False)
-    br1 = shortcut(net, name, inplane, midplane, stride, split)
+    conv(net, name + '-0', midplane, 3, stride, 1, True, True, split)
+    br0 = conv(net, name + '-1', outplane, 3, 1, 1, True, False)
+    br1 = shortcut(net, name, inplane, outplane, stride, split, shortcut_bn)
     net.add(Merge(name + '-add'), [br0, br1])
     return net.add(Activation(name + '-add-relu'))
 
@@ -65,9 +65,9 @@ def basicblock(name, net, inplane, midplane, outplane, stride=1, preact=False):
 def stage(sid, net, num_blk, inplane, midplane, outplane, stride, block):
     block('stage%d-blk%d' % (sid, 0), net, inplane, midplane, outplane, stride)
     for i in range(1, num_blk):
-        block('stage%d-blk%d' % (sid, i), net, outplane, midplane, outplane)
+        block('stage%d-blk%d' % (sid, i), net, outplane, midplane, outplane, 1)
 
-def init_params(net, weight_path):
+def init_params(net, weight_path=None):
     if weight_path == None:
         for pname, pval in zip(net.param_names(), net.param_values()):
             print pname, pval.shape
@@ -97,21 +97,23 @@ cfg = { 18: [2, 2, 2, 2],  # basicblock
 
 
 def create_resnet(depth=50):
-    conf = cfg[depth]
-    block = basic
-    if depth > 34:
-        block = bottleneck
-
     net = ffnet.FeedForwardNet()
-    net.add(Conv2D('input-conv', 64, 7, 2, pad=3, input_sample_shape=(3, 224, 224)))
+    net.add(Conv2D('input-conv', 64, 7, 2, pad=3, use_bias=False, input_sample_shape=(3, 224, 224)))
     net.add(BatchNormalization('input-bn'))
     net.add(Activation('input_relu'))
     net.add(MaxPooling2D('input_pool', 3, 2, pad=1))
-    stage(0, net, conf[0], 64, 64, 256, 1, block)
-    stage(1, net, conf[1], 256, 128, 512, 2, block)
-    stage(2, net, conf[2], 512, 256, 1024, 2, block)
-    stage(3, net, conf[3], 1024, 512, 2048, 2, block)
-    net.add(AvgPooling2D('avg', 7, 1))
+    conf = cfg[depth]
+    if depth > 34:
+        stage(0, net, conf[0], 64, 64, 256, 1, bottleneck)
+        stage(1, net, conf[1], 256, 128, 512, 2, bottleneck)
+        stage(2, net, conf[2], 512, 256, 1024, 2, bottleneck)
+        stage(3, net, conf[3], 1024, 512, 2048, 2, bottleneck)
+    else:
+        stage(0, net, conf[0], 64, 64, 64, 1, basicblock)
+        stage(1, net, conf[1], 64, 128, 128, 2, basicblock)
+        stage(2, net, conf[2], 128, 256, 256, 2, basicblock)
+        stage(3, net, conf[3], 256, 512, 512, 2, basicblock)
+    net.add(AvgPooling2D('avg', 7, 1, pad=0))
     net.add(Flatten('flat'))
     net.add(Dense('dense', 1000))
     return net
@@ -136,8 +138,13 @@ def create_wide_resnet(depth=None):
 
 
 def create_net(name, depth):
-    pass
+    if name == 'resnet':
+        return create_resnet(depth)
+    elif name == 'wrn':
+        return create_wide_resnet(depth)
+    elif name == 'preact':
+        return create_preact_resnet(depth)
 
 
 if __name__ == '__main__':
-    create_net('wrn-50-2.pickle')
+    create_net('wrn', 50)
