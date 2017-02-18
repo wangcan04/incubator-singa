@@ -766,8 +766,8 @@ class Merge(Layer):
         Returns:
             A list of replicated grad, one per source layer
         '''
-        assert isinstance(grad, tensor.Tensor), 'The input must be Tensor'\
-                ' instead of %s' % type(grad).__name__
+        assert isinstance(grad, tensor.Tensor), 'The input must be Tensor' \
+            ' instead of %s' % type(grad).__name__
         return [grad] * self.num_input, []  # * self.num_input
 
 
@@ -902,7 +902,7 @@ class Slice(Layer):
     def get_output_sample_shape(self):
         out = []
         for i in range(len(self.conf.slice_conf.slice_point) + 1):
-            out.append(self.layer.GetOutputSampleShape(i))
+            out.append(self.layer.GetOutputSampleShapeAt(i))
 
     def forward(self, flag, x):
         '''Slice the input tensor on the given axis.
