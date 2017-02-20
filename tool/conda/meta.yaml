@@ -16,17 +16,17 @@ requirements:
     - numpy >=1.10
     - swig >=3.0
     - openblas >=0.2.10
-    - protobuf >=2.5,<2.7
+    - libprotobuf >=2.5,<2.7
     - cmake >=2.8
 
   run:
     - python 2.7*
     - numpy >=1.10
-    - protobuf >=2.5,<3.0
+    - libprotobuf >=2.5,<3.0
     - openblas >=0.2.10
     - flask >=0.10.1
     - flask_cors >=3.0.2
-    - pillow>=2.3.0
+    - pillow >=2.3.0
     - unittest-xml-reporting
 
 about:
