@@ -16,7 +16,7 @@ requirements:
     - swig >=3.0
     - openblas >=0.2.10
     - libprotobuf >=2.5,<2.7
-    - cmake >=2.8
+    - glog # [osx]
 
   run:
     - python 2.7*
@@ -27,6 +27,7 @@ requirements:
     - flask_cors >=3.0.2
     - pillow >=2.3.0
     - unittest-xml-reporting
+    - glog # [osx]
 
 about:
   home: http://singa.apache.org/
