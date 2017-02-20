@@ -1,7 +1,7 @@
-export CMAKE_PREFIX_PATH=/root/miniconda2/
+export CMAKE_PREFIX_PATH=$PREFIX
+export export CPLUS_INCLUDE_PATH=`python -c "import numpy; print numpy.get_include()"`:$CPLUS_INCLUDE_PATH
 
 echo $PREFIX
-echo $PATH
 
 mkdir build
 cd build
