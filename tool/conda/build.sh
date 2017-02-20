@@ -1,5 +1,4 @@
-export CMAKE_INLCUDE_PATH=/Users/dbsystemnus/miniconda2/include
-export CMAKE_LIBRARY_PATH=/Users/dbsystemnus/miniconda2/lib
+export CMAKE_PREFIX_PATH=/root/miniconda2/
 
 mkdir build
 cd build

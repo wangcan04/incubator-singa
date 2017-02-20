@@ -3,7 +3,7 @@ package:
   version: "1.1.0"
 
 source:
-  git_url: https://github.com/apache/incubator-singa.git
+  git_url: https://github.com/nudles/incubator-singa.git
   git_rev: {{ GIT_DESCRIBE_TAG }}
 
 
@@ -33,4 +33,3 @@ about:
   home: http://singa.apache.org/
   license: Apache V2
   license_file: LICENSE
-
